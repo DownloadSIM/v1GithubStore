@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eSIM Store | Instant Global Data</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); line-height: 1.5; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    
+    /* Header */
+    header { text-align: center; padding: 40px 0 20px; }
+    header h1 { font-size: 2.2rem; margin-bottom: 8px; }
+    header p { color: var(--text-muted); max-width: 600px; margin: 0 auto; }
+
+    /* Search & Filters */
+    .filters { background: var(--card); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin: 24px 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+    .filter-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
+    .filter-group input, .filter-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: border 0.2s; }
+    .filter-group input:focus, .filter-group select:focus { outline: none; border-color: var(--primary); }
+    button.search-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%; }
+    button.search-btn:hover { background: var(--primary-hover); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Results */
+    .results-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin-top: 24px; }
+    .plan-card { background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+    .plan-name { font-weight: 700; font-size: 1.1rem; }
+    .plan-meta { color: var(--text-muted); font-size: 0.9rem; display: flex; gap: 12px; flex-wrap: wrap; }
+    .plan-price { font-size: 1.4rem; font-weight: 800; color: var(--primary); margin-top: auto; }
+    .buy-btn { background: var(--success); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 8px; }
+    .buy-btn:hover { filter: brightness(0.95); }
+
+    /* States */
+    .state { text-align: center; padding: 40px; color: var(--text-muted); }
+    .loader { border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; width: 36px; height: 36px; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error { color: #dc2626; background: #fef2f2; padding: 12px; border-radius: 8px; margin-top: 16px; }
+
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal { background: var(--card); padding: 24px; border-radius: var(--radius); max-width: 400px; width: 90%; box-shadow: var(--shadow); }
+    .modal h3 { margin-bottom: 12px; }
+    .modal input { width: 100%; padding: 10px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .modal-actions button { padding: 10px 16px; border-radius: 8px; cursor: pointer; border: none; font-weight: 600; }
+    .btn-secondary { background: var(--border); }
+    .btn-primary { background: var(--primary); color: white; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌍 Instant eSIM Data</h1>
+      <p>Select your destination, data, and duration. We'll handle the rest.</p>
+    </header>
+
+    <div class="filters">
+      <div class="filter-group">
+        <label for="country">Country / Region</label>
+        <input type="text" id="country" placeholder="e.g. France, Japan, Global" autocomplete="off" />
+      </div>
+      <div class="filter-group">
+        <label for="data">Data Amount</label>
+        <select id="data">
+          <option value="">Any</option>
+          <option value="0.5">0.5 GB</option>
+          <option value="1">1 GB</option>
+          <option value="3">3 GB</option>
+          <option value="5">5 GB</option>
+          <option value="10">10 GB</option>
+          <option value="20">20 GB</option>
+          <option value="50">50 GB</option>
+          <option value="unlimited">Unlimited</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="duration">Duration</label>
+        <select id="duration">
+          <option value="">Any</option>
+          <option value="1">1 Day</option>
+          <option value="7">7 Days</option>
+          <option value="15">15 Days</option>
+          <option value="30">30 Days</option>
+          <option value="90">90 Days</option>
+          <option value="180">180 Days</option>
+          <option value="365">365 Days</option>
+        </select>
+      </div>
+      <div class="filter-group" style="display:flex; align-items:end;">
+        <button class="search-btn" id="searchBtn">🔍 Find Plans</button>
+      </div>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+  <!-- Email Modal -->
+  <div class="modal-overlay" id="emailModal">
+    <div class="modal">
+      <h3>📧 Enter your email to checkout</h3>
+      <p style="margin-bottom:12px; color:var(--text-muted); font-size:0.9rem;">We'll send your eSIM QR code here after payment.</p>
+      <input type="email" id="customerEmail" placeholder="you@example.com" required />
+      <div class="modal-actions">
+        <button class="btn-secondary" id="cancelModal">Cancel</button>
+        <button class="btn-primary" id="confirmCheckout">Continue to Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 🔧 CONFIGURATION: Replace with your ActivePieces Webhook URLs
+    const APC_CONFIG = {
+      searchUrl: "YOUR_APC_SEARCH_WEBHOOK_URL",
+      checkoutUrl: "YOUR_APC_CHECKOUT_WEBHOOK_URL"
+    };
+
+    let selectedPlan = null;
+    const resultsEl = document.getElementById("results");
+    const modal = document.getElementById("emailModal");
+    const emailInput = document.getElementById("customerEmail");
+
+    // Render states
+    const showLoading = () => resultsEl.innerHTML = `<div class="state"><div class="loader"></div><p>Searching 2,600+ plans...</p></div>`;
+    const showError = (msg) => resultsEl.innerHTML = `<div class="state error">⚠️ ${msg}</div>`;
+    const showEmpty = () => resultsEl.innerHTML = `<div class="state">No plans match your filters. Try broadening your search.</div>`;
+
+    // Search handler
+    document.getElementById("searchBtn").addEventListener("click", async () => {
+      const country = document.getElementById("country").value.trim();
+      const data = document.getElementById("data").value;
+      const duration = document.getElementById("duration").value;
+
+      if (!country) return showError("Please enter a country or region.");
+
+      showLoading();
+      try {
+        const res = await fetch(APC_CONFIG.searchUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ country, data: data || null, duration: duration || null })
+        });
+        if (!res.ok) throw new Error(`API Error: ${res.status}`);
+        const plans = await res.json();
+        renderPlans(plans);
+      } catch (err) {
+        showError("Failed to fetch plans. Please try again.");
+        console.error(err);
+      }
+    });
+
+    // Render results
+    function renderPlans(plans) {
+      if (!plans || plans.length === 0) return showEmpty();
+      
+      resultsEl.innerHTML = '<div class="results-grid">' + plans.map(p => `
+        <div class="plan-card">
+          <div class="plan-name">${p.planName}</div>
+          <div class="plan-meta">
+            <span>📶 ${p.gb === "unlimited" ? "Unlimited" : p.gb + " GB"}</span>
+            <span>📅 ${p.days} Days</span>
+            <span>🌐 ${p.coverage}</span>
+          </div>
+          <div class="plan-price">$${p.price.toFixed(2)}</div>
+          <button class="buy-btn" onclick="openCheckout('${p.planId}', '${p.planName.replace(/'/g, "\\'")}')">Buy Now</button>
+        </div>
+      `).join('') + '</div>';
+    }
+
+    // Checkout modal
+    window.openCheckout = (planId, planName) => {
+      selectedPlan = { planId, planName };
+      modal.style.display = "flex";
+      emailInput.focus();
+    };
+    document.getElementById("cancelModal").onclick = () => modal.style.display = "none";
+    document.getElementById("confirmCheckout").onclick = async () => {
+      const email = emailInput.value.trim();
+      if (!email || !email.includes("@")) return alert("Please enter a valid email.");
+      
+      const btn = document.getElementById("confirmCheckout");
+      btn.disabled = true; btn.textContent = "Processing...";
+      
+      try {
+        const res = await fetch(APC_CONFIG.checkoutUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ planId: selectedPlan.planId, email })
+        });
+        if (!res.ok) throw new Error(`Checkout Error: ${res.status}`);
+        const { checkoutUrl } = await res.json();
+        window.location.href = checkoutUrl;
+      } catch (err) {
+        alert("Failed to start checkout. Please try again.");
+        console.error(err);
+      } finally {
+        btn.disabled = false; btn.textContent = "Continue to Payment";
+        modal.style.display = "none";
+      }
+    };
+  </script>
+</body>
+</html>
