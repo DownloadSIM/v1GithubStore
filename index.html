@@ -127,23 +127,24 @@
       searchUrl: "https://cloud.activepieces.com/api/v1/webhooks/0npqEufU6rvxr9IMb9uu7/sync",
       checkoutUrl: "PENDING" // We'll add this next
     };
-
+    
+    let cachedPlans = []; // Stores search results
     let selectedPlan = null;
     const resultsEl = document.getElementById("results");
     const modal = document.getElementById("emailModal");
     const emailInput = document.getElementById("customerEmail");
+    const countryInput = document.getElementById("country");
+    const dataSelect = document.getElementById("data");
+    const durationSelect = document.getElementById("duration");
 
     // Render states
     const showLoading = () => resultsEl.innerHTML = `<div class="state"><div class="loader"></div><p>Searching 2,600+ plans...</p></div>`;
     const showError = (msg) => resultsEl.innerHTML = `<div class="state error">⚠️ ${msg}</div>`;
     const showEmpty = () => resultsEl.innerHTML = `<div class="state">No plans match your filters. Try broadening your search.</div>`;
 
-    // Search handler
+    // Search handler - ONLY called when clicking "Find Plans"
     document.getElementById("searchBtn").addEventListener("click", async () => {
-      const country = document.getElementById("country").value.trim();
-      const data = document.getElementById("data").value;
-      const duration = document.getElementById("duration").value;
-
+      const country = countryInput.value.trim();
       if (!country) return showError("Please enter a country or region.");
 
       showLoading();
@@ -151,16 +152,66 @@
         const res = await fetch(APC_CONFIG.searchUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ country, data: data || null, duration: duration || null })
+          body: JSON.stringify({ 
+            country: country,
+            data: dataSelect.value || null, 
+            duration: durationSelect.value || null 
+          })
         });
         if (!res.ok) throw new Error(`API Error: ${res.status}`);
         const plans = await res.json();
+
+        // Cache the results
+        cachedPlans = plans;
         renderPlans(plans);
       } catch (err) {
         showError("Failed to fetch plans. Please try again.");
         console.error(err);
       }
     });
+
+    // NEW: Filter handler - called when dropdowns change
+    function applyFilters() {
+      if (cachedPlans.length === 0) return;
+  
+      const selectedData = dataSelect.value;
+      const selectedDuration = durationSelect.value;
+  
+      const filtered = cachedPlans.filter(plan => {
+        // Check Data filter
+        const dataMatch = !selectedData || 
+          (selectedData === "unlimited" && plan.gb.toString().toLowerCase() === "unlimited") ||
+          (selectedData !== "unlimited" && parseFloat(plan.gb) == parseFloat(selectedData));
+    
+        // Check Duration filter
+        const durationMatch = !selectedDuration || parseFloat(plan.days) == parseFloat(selectedDuration);
+    
+        return dataMatch && durationMatch;
+      });
+  
+      renderPlans(filtered);
+    }
+
+    // Add listeners to dropdowns
+    dataSelect.addEventListener("change", applyFilters);
+    durationSelect.addEventListener("change", applyFilters);
+
+    // Render results
+    function renderPlans(plans) {
+      if (!plans || plans.length === 0) return showEmpty();
+      resultsEl.innerHTML = '<div class="results-grid">' + plans.map(p => `
+        <div class="plan-card">
+          <div class="plan-name">${p.planName}</div>
+          <div class="plan-meta">
+            <span>📶 ${p.gb === "unlimited" || p.gb.toString().toLowerCase() === "unlimited" ? "Unlimited" : p.gb + " GB"}</span>
+            <span>📅 ${p.days} Days</span>
+            <span>🌐 ${p.coverage}</span>
+          </div>
+          <div class="plan-price">$${parseFloat(p.price).toFixed(2)}</div>
+          <button class="buy-btn" onclick="openCheckout('${p.planId}', '${p.planName.replace(/'/g, "\\'")}', ${p.price})">Buy Now</button>
+        </div>
+      `).join('') + '</div>';
+    }
 
     // Render results
     function renderPlans(plans) {
@@ -181,24 +232,27 @@
     }
 
     // Checkout modal
-    window.openCheckout = (planId, planName) => {
-      selectedPlan = { planId, planName };
+    window.openCheckout = (planId, planName, price) => {
+      selectedPlan = { planId, planName, price };
       modal.style.display = "flex";
       emailInput.focus();
     };
+
     document.getElementById("cancelModal").onclick = () => modal.style.display = "none";
     document.getElementById("confirmCheckout").onclick = async () => {
       const email = emailInput.value.trim();
       if (!email || !email.includes("@")) return alert("Please enter a valid email.");
-      
       const btn = document.getElementById("confirmCheckout");
-      btn.disabled = true; btn.textContent = "Processing...";
-      
+      btn.disabled = true; btn.textContent = "Processing...";  
       try {
         const res = await fetch(APC_CONFIG.checkoutUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ planId: selectedPlan.planId, email })
+          body: JSON.stringify({ 
+            planId: selectedPlan.planId, 
+            email: email,
+            price: selectedPlan.price
+          })
         });
         if (!res.ok) throw new Error(`Checkout Error: ${res.status}`);
         const { checkoutUrl } = await res.json();
