@@ -3,268 +3,195 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>eSIM Store | Instant Global Data</title>
+  <title>eSIM Store</title>
   <style>
-    :root {
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
-      --success: #10b981;
-      --radius: 12px;
-      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); line-height: 1.5; }
-    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    
-    /* Header */
-    header { text-align: center; padding: 40px 0 20px; }
-    header h1 { font-size: 2.2rem; margin-bottom: 8px; }
-    header p { color: var(--text-muted); max-width: 600px; margin: 0 auto; }
+    :root { --primary: #2563eb; --bg: #f8fafc; --card: #fff; --border: #e2e8f0; --text: #0f172a; --muted: #64748b; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 20px; }
 
-    /* Search & Filters */
-    .filters { background: var(--card); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin: 24px 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-    .filter-group label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
-    .filter-group input, .filter-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; transition: border 0.2s; }
-    .filter-group input:focus, .filter-group select:focus { outline: none; border-color: var(--primary); }
-    button.search-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%; }
-    button.search-btn:hover { background: var(--primary-hover); }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    /* Layout Sections */
+    .search-row { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-row { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; background: var(--card); padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+    .range-group { display: flex; align-items: center; gap: 8px; }
+    input, select, button { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; }
+    button { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+    button:hover { opacity: 0.9; }
+    button.secondary { background: var(--muted); }
 
-    /* Results */
-    .results-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin-top: 24px; }
-    .plan-card { background: var(--card); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
-    .plan-name { font-weight: 700; font-size: 1.1rem; }
-    .plan-meta { color: var(--text-muted); font-size: 0.9rem; display: flex; gap: 12px; flex-wrap: wrap; }
-    .plan-price { font-size: 1.4rem; font-weight: 800; color: var(--primary); margin-top: auto; }
-    .buy-btn { background: var(--success); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 8px; }
-    .buy-btn:hover { filter: brightness(0.95); }
+    /* Custom Country Dropdown */
+    .country-selector { position: relative; width: 300px; }
+    .selector-display { background: #fff; border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .selector-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; max-height: 250px; overflow-y: auto; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
+    .selector-dropdown input { width: 100%; border: none; border-bottom: 1px solid var(--border); border-radius: 0; outline: none; }
+    .country-list { max-height: 200px; overflow-y: auto; }
+    .country-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; }
+    .country-item:hover { background: #f1f5f9; }
+    .country-item input { width: auto; margin: 0; }
 
-    /* States */
-    .state { text-align: center; padding: 40px; color: var(--text-muted); }
-    .loader { border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; width: 36px; height: 36px; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    /* Table */
+    .table-wrapper { overflow-x: auto; background: var(--card); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    th { background: #f8fafc; font-weight: 600; color: var(--muted); position: sticky; top: 0; }
+    tr:hover { background: #f8fafc; }
+    .buy-btn { background: #10b981; padding: 6px 12px; font-size: 0.85rem; }
+    .state { text-align: center; padding: 40px; color: var(--muted); }
+    .loader { border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .error { color: #dc2626; background: #fef2f2; padding: 12px; border-radius: 8px; margin-top: 16px; }
-
-    /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 100; }
-    .modal { background: var(--card); padding: 24px; border-radius: var(--radius); max-width: 400px; width: 90%; box-shadow: var(--shadow); }
-    .modal h3 { margin-bottom: 12px; }
-    .modal input { width: 100%; padding: 10px; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; }
-    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
-    .modal-actions button { padding: 10px 16px; border-radius: 8px; cursor: pointer; border: none; font-weight: 600; }
-    .btn-secondary { background: var(--border); }
-    .btn-primary { background: var(--primary); color: white; }
   </style>
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>🌍 Instant eSIM Data</h1>
-      <p>Select your destination, data, and duration. We'll handle the rest.</p>
-    </header>
+    <h1>🌍 Instant eSIM Data</h1>
 
-    <div class="filters">
-      <div class="filter-group">
-        <label for="country">Country / Region</label>
-        <input type="text" id="country" placeholder="e.g. France, Japan, Global" autocomplete="off" />
+    <!-- 1. Country Search & Fetch -->
+    <div class="search-row">
+      <div class="field country-selector" id="countrySelector">
+        <label>Country / Region</label>
+        <div class="selector-display" id="selectorDisplay" onclick="toggleDropdown()">0 selected</div>
+        <div class="selector-dropdown" id="selectorDropdown">
+          <input type="text" id="countrySearch" placeholder="Search countries..." oninput="filterCountries()" />
+          <div class="country-list" id="countryList"></div>
+        </div>
       </div>
-      <div class="filter-group">
-        <label for="data">Data Amount</label>
-        <select id="data">
-          <option value="">Any</option>
-          <option value="0.5">0.5 GB</option>
-          <option value="1">1 GB</option>
-          <option value="3">3 GB</option>
-          <option value="5">5 GB</option>
-          <option value="10">10 GB</option>
-          <option value="20">20 GB</option>
-          <option value="50">50 GB</option>
-          <option value="unlimited">Unlimited</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <label for="duration">Duration</label>
-        <select id="duration">
-          <option value="">Any</option>
-          <option value="1">1 Day</option>
-          <option value="7">7 Days</option>
-          <option value="15">15 Days</option>
-          <option value="30">30 Days</option>
-          <option value="90">90 Days</option>
-          <option value="180">180 Days</option>
-          <option value="365">365 Days</option>
-        </select>
-      </div>
-      <div class="filter-group" style="display:flex; align-items:end;">
-        <button class="search-btn" id="searchBtn">🔍 Find Plans</button>
+      <div class="field" style="justify-content: flex-end;">
+        <button id="findPlansBtn">🔍 Find Plans</button>
       </div>
     </div>
 
-    <div id="results"></div>
-  </div>
-
-  <!-- Email Modal -->
-  <div class="modal-overlay" id="emailModal">
-    <div class="modal">
-      <h3>📧 Enter your email to checkout</h3>
-      <p style="margin-bottom:12px; color:var(--text-muted); font-size:0.9rem;">We'll send your eSIM QR code here after payment.</p>
-      <input type="email" id="customerEmail" placeholder="you@example.com" required />
-      <div class="modal-actions">
-        <button class="btn-secondary" id="cancelModal">Cancel</button>
-        <button class="btn-primary" id="confirmCheckout">Continue to Payment</button>
+    <!-- 2. Filters -->
+    <div class="filter-row">
+      <div class="field">
+        <label>Data (GB)</label>
+        <div class="range-group">
+          <input type="number" id="minData" placeholder="Min" step="0.1" min="0">
+          <span>to</span>
+          <input type="number" id="maxData" placeholder="Max" step="0.1" min="0">
+        </div>
+      </div>
+      <div class="field">
+        <label>Duration (Days)</label>
+        <div class="range-group">
+          <select id="minDuration"><option value="">Min</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option></select>
+          <span>to</span>
+          <select id="maxDuration"><option value="">Max</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option></select>
+        </div>
+      </div>
+      <div class="field" style="justify-content: flex-end;">
+        <button class="secondary" id="applyFiltersBtn">Apply Filters</button>
       </div>
     </div>
+
+    <!-- 3. Results Table -->
+    <div id="resultsContainer"></div>
   </div>
 
   <script>
-    // 🔧 CONFIGURATION: Replace with your ActivePieces Webhook URLs
-    const APC_CONFIG = {
-      searchUrl: "https://cloud.activepieces.com/api/v1/webhooks/0npqEufU6rvxr9IMb9uu7/sync",
-      checkoutUrl: "PENDING" // We'll add this next
-    };
+    // 🔧 PASTE YOUR APC WEBHOOK URL HERE
+    const APC_SEARCH_URL = "YOUR_APC_SEARCH_WEBHOOK_URL";
     
-    let cachedPlans = []; // Stores search results
-    let selectedPlan = null;
-    const resultsEl = document.getElementById("results");
-    const modal = document.getElementById("emailModal");
-    const emailInput = document.getElementById("customerEmail");
-    const countryInput = document.getElementById("country");
-    const dataSelect = document.getElementById("data");
-    const durationSelect = document.getElementById("duration");
+    // Comprehensive country list (edit as needed)
+    const COUNTRIES = ["Global","Europe","USA","UK","Japan","South Korea","France","Germany","Italy","Spain","Australia","Canada","Brazil","Mexico","India","Thailand","Singapore","Indonesia","Malaysia","Philippines","Vietnam","UAE","Saudi Arabia","South Africa","Kenya","Nigeria","Egypt","Turkey","Greece","Portugal","Netherlands","Belgium","Switzerland","Austria","Sweden","Norway","Denmark","Finland","Poland","Czech Republic","Hungary","Romania","Bulgaria","Croatia","Ireland","New Zealand","Chile","Argentina","Colombia","Peru"];
+    
+    let selectedCountries = [];
+    let cachedPlans = [];
 
-    // Render states
-    const showLoading = () => resultsEl.innerHTML = `<div class="state"><div class="loader"></div><p>Searching 2,600+ plans...</p></div>`;
-    const showError = (msg) => resultsEl.innerHTML = `<div class="state error">⚠️ ${msg}</div>`;
-    const showEmpty = () => resultsEl.innerHTML = `<div class="state">No plans match your filters. Try broadening your search.</div>`;
+    // --- Country Dropdown Logic ---
+    function initDropdown() {
+      const list = document.getElementById("countryList");
+      list.innerHTML = COUNTRIES.map(c => `
+        <label class="country-item">
+          <input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}
+        </label>
+      `).join('');
+    }
+    function toggleDropdown() { document.getElementById("selectorDropdown").style.display = document.getElementById("selectorDropdown").style.display === "block" ? "none" : "block"; }
+    function filterCountries() {
+      const q = document.getElementById("countrySearch").value.toLowerCase();
+      document.querySelectorAll(".country-item").forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(q) ? "flex" : "none";
+      });
+    }
+    function updateSelection() {
+      selectedCountries = Array.from(document.querySelectorAll("#countryList input:checked")).map(cb => cb.value);
+      document.getElementById("selectorDisplay").textContent = selectedCountries.length ? `${selectedCountries.length} selected` : "0 selected";
+    }
+    document.addEventListener("click", e => { if(!e.target.closest(".country-selector")) document.getElementById("selectorDropdown").style.display = "none"; });
 
-    // Search handler - ONLY called when clicking "Find Plans"
-    document.getElementById("searchBtn").addEventListener("click", async () => {
-      const country = countryInput.value.trim();
-      if (!country) return showError("Please enter a country or region.");
-
-      showLoading();
+    // --- Search & Filter Logic ---
+    document.getElementById("findPlansBtn").addEventListener("click", async () => {
+      if(!selectedCountries.length) return alert("Select at least one country.");
+      document.getElementById("resultsContainer").innerHTML = `<div class="state"><div class="loader"></div>Searching...</div>`;
       try {
-        const res = await fetch(APC_CONFIG.searchUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            country: country,
-            data: dataSelect.value || null, 
-            duration: durationSelect.value || null 
-          })
+        const res = await fetch(APC_SEARCH_URL, {
+          method: "POST", headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ countries: selectedCountries })
         });
-        if (!res.ok) throw new Error(`API Error: ${res.status}`);
-        const plans = await res.json();
-
-        // Cache the results
-        cachedPlans = plans;
-        renderPlans(plans);
-      } catch (err) {
-        showError("Failed to fetch plans. Please try again.");
-        console.error(err);
+        cachedPlans = await res.json();
+        applyFilters();
+      } catch(e) {
+        document.getElementById("resultsContainer").innerHTML = `<div class="state">⚠️ Search failed. Try again.</div>`;
       }
     });
 
-    // NEW: Filter handler - called when dropdowns change
+    document.getElementById("applyFiltersBtn").addEventListener("click", applyFilters);
+
     function applyFilters() {
-      if (cachedPlans.length === 0) return;
-  
-      const selectedData = dataSelect.value;
-      const selectedDuration = durationSelect.value;
-  
-      const filtered = cachedPlans.filter(plan => {
-        // Check Data filter
-        const dataMatch = !selectedData || 
-          (selectedData === "unlimited" && plan.gb.toString().toLowerCase() === "unlimited") ||
-          (selectedData !== "unlimited" && parseFloat(plan.gb) == parseFloat(selectedData));
-    
-        // Check Duration filter
-        const durationMatch = !selectedDuration || parseFloat(plan.days) == parseFloat(selectedDuration);
-    
-        return dataMatch && durationMatch;
+      if(!cachedPlans.length) return;
+      const minD = parseFloat(document.getElementById("minData").value) || 0;
+      const maxD = parseFloat(document.getElementById("maxData").value) || Infinity;
+      const minDur = parseFloat(document.getElementById("minDuration").value) || 0;
+      const maxDur = parseFloat(document.getElementById("maxDuration").value) || Infinity;
+
+      const filtered = cachedPlans.filter(p => {
+        const gb = p.gb === "unlimited" ? Infinity : parseFloat(p.gb);
+        const days = parseFloat(p.days);
+        return gb >= minD && gb <= maxD && days >= minDur && days <= maxDur;
       });
-  
-      renderPlans(filtered);
+      renderTable(filtered);
     }
 
-    // Add listeners to dropdowns
-    dataSelect.addEventListener("change", applyFilters);
-    durationSelect.addEventListener("change", applyFilters);
-
-    // Render results
-    function renderPlans(plans) {
-      if (!plans || plans.length === 0) return showEmpty();
-      resultsEl.innerHTML = '<div class="results-grid">' + plans.map(p => `
-        <div class="plan-card">
-          <div class="plan-name">${p.planName}</div>
-          <div class="plan-meta">
-            <span>📶 ${p.gb === "unlimited" || p.gb.toString().toLowerCase() === "unlimited" ? "Unlimited" : p.gb + " GB"}</span>
-            <span>📅 ${p.days} Days</span>
-            <span>🌐 ${p.coverage}</span>
-          </div>
-          <div class="plan-price">$${parseFloat(p.price).toFixed(2)}</div>
-          <button class="buy-btn" onclick="openCheckout('${p.planId}', '${p.planName.replace(/'/g, "\\'")}', ${p.price})">Buy Now</button>
-        </div>
-      `).join('') + '</div>';
-    }
-
-    // Render results
-    function renderPlans(plans) {
-      if (!plans || plans.length === 0) return showEmpty();
+    function renderTable(plans) {
+      if(!plans.length) return document.getElementById("resultsContainer").innerHTML = `<div class="state">No plans match filters.</div>`;
+      let html = `<div class="table-wrapper"><table><thead><tr>
+        <th>#</th><th>Name</th><th>Price</th><th>Data / Speed</th><th>Duration</th><th>Price/GB & /Day</th><th>Target Codes</th><th>IP Route</th><th>Recharge</th><th></th>
+      </tr></thead><tbody>`;
       
-      resultsEl.innerHTML = '<div class="results-grid">' + plans.map(p => `
-        <div class="plan-card">
-          <div class="plan-name">${p.planName}</div>
-          <div class="plan-meta">
-            <span>📶 ${p.gb === "unlimited" ? "Unlimited" : p.gb + " GB"}</span>
-            <span>📅 ${p.days} Days</span>
-            <span>🌐 ${p.coverage}</span>
-          </div>
-          <div class="plan-price">$${p.price.toFixed(2)}</div>
-          <button class="buy-btn" onclick="openCheckout('${p.planId}', '${p.planName.replace(/'/g, "\\'")}')">Buy Now</button>
-        </div>
-      `).join('') + '</div>';
+      plans.forEach((p, i) => {
+        const gb = p.gb === "unlimited" ? "∞" : p.gb;
+        const speed = p.category || "Full Speed";
+        const priceGb = p.gb === "unlimited" ? "N/A" : `$${(p.price / parseFloat(p.gb)).toFixed(2)}`;
+        const priceDay = `$${(p.price / parseFloat(p.days)).toFixed(2)}`;
+        
+        html += `<tr>
+          <td>${i+1}</td>
+          <td><b>${p.name}</b></td>
+          <td>$${p.price.toFixed(2)}</td>
+          <td>${gb} GB / ${speed}</td>
+          <td>${p.days} Days</td>
+          <td>${priceGb} <br> ${priceDay}</td>
+          <td style="font-size:0.8rem; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${p.codes}">${p.codes}</td>
+          <td>${p.ipRoute}</td>
+          <td>${p.reloadable === "yes" ? "✅" : "❌"}</td>
+          <td><button class="buy-btn" onclick="startCheckout('${p.planId}')">Buy</button></td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      document.getElementById("resultsContainer").innerHTML = html;
     }
 
-    // Checkout modal
-    window.openCheckout = (planId, planName, price) => {
-      selectedPlan = { planId, planName, price };
-      modal.style.display = "flex";
-      emailInput.focus();
-    };
+    function startCheckout(planId) {
+      const email = prompt("Enter your email for the eSIM QR code:");
+      if(!email || !email.includes("@")) return alert("Invalid email.");
+      // TODO: Call APC checkout webhook here when Flow #2 is ready
+      alert(`Checkout flow for ${planId} will be connected in the next step.`);
+    }
 
-    document.getElementById("cancelModal").onclick = () => modal.style.display = "none";
-    document.getElementById("confirmCheckout").onclick = async () => {
-      const email = emailInput.value.trim();
-      if (!email || !email.includes("@")) return alert("Please enter a valid email.");
-      const btn = document.getElementById("confirmCheckout");
-      btn.disabled = true; btn.textContent = "Processing...";  
-      try {
-        const res = await fetch(APC_CONFIG.checkoutUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            planId: selectedPlan.planId, 
-            email: email,
-            price: selectedPlan.price
-          })
-        });
-        if (!res.ok) throw new Error(`Checkout Error: ${res.status}`);
-        const { checkoutUrl } = await res.json();
-        window.location.href = checkoutUrl;
-      } catch (err) {
-        alert("Failed to start checkout. Please try again.");
-        console.error(err);
-      } finally {
-        btn.disabled = false; btn.textContent = "Continue to Payment";
-        modal.style.display = "none";
-      }
-    };
+    initDropdown();
   </script>
 </body>
 </html>
