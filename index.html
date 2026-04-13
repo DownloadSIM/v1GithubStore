@@ -32,4 +32,80 @@
     th { background: #f8fafc; font-weight: 600; color: var(--muted); position: sticky; top: 0; }
     .buy-btn { background: #10b981; padding: 6px 12px; font-size: 0.85rem; }
     .state { text-align: center; padding: 40px; color: var(--muted); }
-    .loader { border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%;
+    .loader { border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌍 Instant eSIM Data</h1>
+    <div class="search-row">
+      <div class="field country-selector" id="countrySelector">
+        <label>Country / Region</label>
+        <div class="selector-display" id="selectorDisplay" onclick="toggleDropdown()">0 selected</div>
+        <div class="selector-dropdown" id="selectorDropdown">
+          <input type="text" id="countrySearch" placeholder="Search countries..." oninput="filterCountries()" />
+          <div class="country-list" id="countryList"></div>
+        </div>
+      </div>
+      <div class="field"><button id="findPlansBtn">🔍 Find Plans</button></div>
+    </div>
+    <div class="filter-row">
+      <div class="field"><label>Data (GB)</label><div class="range-group"><input type="number" id="minData" placeholder="Min"><span>to</span><input type="number" id="maxData" placeholder="Max"></div></div>
+      <div class="field"><label>Duration (Days)</label><div class="range-group"><select id="minDuration"><option value="0">Min</option><option value="1">1</option><option value="7">7</option><option value="30">30</option></select><span>to</span><select id="maxDuration"><option value="999">Max</option><option value="7">7</option><option value="30">30</option><option value="365">365</option></select></div></div>
+      <div class="field"><button class="secondary" id="applyFiltersBtn">Apply Filters</button></div>
+    </div>
+    <div id="resultsContainer"></div>
+  </div>
+  <script>
+    const APC_SEARCH_URL = "YOUR_APC_WEBHOOK_URL/sync"; // MUST END IN /sync
+    const COUNTRIES = ["Global","Europe","USA","UK","Japan","South Korea","France","Germany","Italy","Spain","Australia","Canada","Thailand","Singapore"];
+    let selectedCountries = []; let cachedPlans = [];
+
+    function initDropdown() {
+      document.getElementById("countryList").innerHTML = COUNTRIES.map(c => `<label class="country-item"><input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}</label>`).join('');
+    }
+    function toggleDropdown() { const d = document.getElementById("selectorDropdown"); d.style.display = d.style.display === "block" ? "none" : "block"; }
+    function filterCountries() {
+      const q = document.getElementById("countrySearch").value.toLowerCase();
+      document.querySelectorAll(".country-item").forEach(item => { item.style.display = item.textContent.toLowerCase().includes(q) ? "flex" : "none"; });
+    }
+    function updateSelection() {
+      selectedCountries = Array.from(document.querySelectorAll("#countryList input:checked")).map(cb => cb.value);
+      document.getElementById("selectorDisplay").textContent = selectedCountries.length ? `${selectedCountries.length} selected` : "0 selected";
+    }
+    document.getElementById("findPlansBtn").addEventListener("click", async () => {
+      if(!selectedCountries.length) return alert("Select at least one country.");
+      document.getElementById("resultsContainer").innerHTML = `<div class="state"><div class="loader"></div>Searching...</div>`;
+      try {
+        const res = await fetch(APC_SEARCH_URL, { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ countries: selectedCountries }) });
+        cachedPlans = await res.json();
+        applyFilters();
+      } catch(e) { document.getElementById("resultsContainer").innerHTML = `<div class="state">⚠️ Search failed. Ensure Webhook ends in /sync</div>`; }
+    });
+    document.getElementById("applyFiltersBtn").addEventListener("click", applyFilters);
+    function applyFilters() {
+      const minD = parseFloat(document.getElementById("minData").value) || 0;
+      const maxD = parseFloat(document.getElementById("maxData").value) || Infinity;
+      const filtered = cachedPlans.filter(p => {
+        const gb = p.gb === "unlimited" ? 999 : parseFloat(p.gb);
+        return gb >= minD && gb <= maxD;
+      });
+      renderTable(filtered);
+    }
+    function renderTable(plans) {
+      if(!plans.length) return document.getElementById("resultsContainer").innerHTML = `<div class="state">No plans match.</div>`;
+      let html = `<div class="table-wrapper"><table><thead><tr><th>Name</th><th>Price</th><th>Data</th><th>Duration</th><th></th></tr></thead><tbody>`;
+      plans.forEach(p => {
+        html += `<tr><td><b>${p.name}</b></td><td>$${parseFloat(p.price).toFixed(2)}</td><td>${p.gb} GB</td><td>${p.days} Days</td><td><button class="buy-btn" onclick="startCheckout('${p.planId}')">Buy</button></td></tr>`;
+      });
+      document.getElementById("resultsContainer").innerHTML = html + `</tbody></table></div>`;
+    }
+    function startCheckout(planId) {
+      const email = prompt("Enter email for eSIM delivery:");
+      if(email && email.includes("@")) alert("Next Step: Connect Step 2 Webhook in APC for " + planId);
+    }
+    initDropdown();
+  </script>
+</body>
+</html>
