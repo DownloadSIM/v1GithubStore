@@ -4,12 +4,10 @@
     <title>eSIM Product Finder</title>
     <style>
         body { font-family: sans-serif; padding: 20px; }
-        select { padding: 8px; font-size: 16px; margin-right: 10px; }
-        button { padding: 8px 16px; font-size: 16px; cursor: pointer; }
+        select, button { padding: 8px; font-size: 16px; margin: 5px; }
         .product { border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
-        .product h3 { margin: 0 0 5px; }
-        .product p { margin: 5px 0; }
         .price { font-weight: bold; color: #2c6e2c; }
+        .error { color: red; }
     </style>
 </head>
 <body>
@@ -21,21 +19,29 @@
     <div id="productList"></div>
 
     <script>
-        // <<< REPLACE THIS URL with your own from step 1.7 >>>
-        const API_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+        // REPLACE THIS URL with your Apps Script web app URL
+        const API_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+        
+        // Column name that contains the country/region
+        const COUNTRY_COLUMN = 'locationName';
+        
         let allProducts = [];
 
-        // Fetch data on page load
         fetch(API_URL)
             .then(response => response.json())
             .then(data => {
+                console.log('Data received:', data);
                 allProducts = data;
                 populateCountryDropdown();
             })
-            .catch(error => console.error('Error fetching data:', error));
+            .catch(error => {
+                console.error('Fetch error:', error);
+                document.getElementById('productList').innerHTML = 
+                    '<p class="error">Failed to load products. Check console for details.</p>';
+            });
 
         function populateCountryDropdown() {
-            const countries = [...new Set(allProducts.map(p => p.location).filter(Boolean))];
+            const countries = [...new Set(allProducts.map(p => p[COUNTRY_COLUMN]).filter(Boolean))];
             const select = document.getElementById('countrySelect');
             countries.forEach(country => {
                 const option = document.createElement('option');
@@ -43,11 +49,15 @@
                 option.textContent = country;
                 select.appendChild(option);
             });
+            if (countries.length === 0) {
+                select.innerHTML = '<option>No countries found – check column name</option>';
+            }
         }
 
         function filterProducts() {
             const selectedCountry = document.getElementById('countrySelect').value;
-            const filtered = allProducts.filter(p => p.location === selectedCountry);
+            if (!selectedCountry) return;
+            const filtered = allProducts.filter(p => p[COUNTRY_COLUMN] === selectedCountry);
             displayProducts(filtered);
         }
 
@@ -59,12 +69,22 @@
                 return;
             }
             products.forEach(p => {
+                // Price: fx_price is stored in the sheet, divide by 10000
+                const rawPrice = p.fx_price;
+                let displayPrice = 'N/A';
+                if (rawPrice !== undefined && rawPrice !== null && !isNaN(rawPrice)) {
+                    displayPrice = (rawPrice / 10000).toFixed(2);
+                }
+                
                 const div = document.createElement('div');
                 div.className = 'product';
                 div.innerHTML = `
-                    <h3>${p.name}</h3>
+                    <h3>${p.name || p.packageCode || 'Unnamed'}</h3>
                     <p><strong>Package Code:</strong> ${p.packageCode}</p>
-                    <p class="price"><strong>Price:</strong> ${p.price}</p>
+                    <p><strong>Volume:</strong> ${p.volume || 'N/A'}</p>
+                    <p><strong>Duration:</strong> ${p.duration || 'N/A'} ${p.durationUnit || ''}</p>
+                    <p class="price"><strong>Price:</strong> ${displayPrice} ${p.currencyCode || 'USD'}</p>
+                    <p><strong>Location:</strong> ${p.locationName}</p>
                 `;
                 container.appendChild(div);
             });
