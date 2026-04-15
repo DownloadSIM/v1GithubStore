@@ -22,8 +22,9 @@
         // REPLACE THIS URL with your Apps Script web app URL
         const API_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
         
-        // Column name that contains the country/region
+        // Column names in your sheet
         const COUNTRY_COLUMN = 'locationName';
+        const PRICE_COLUMN = 'fx_price/10000';   // exact header with slash
         
         let allProducts = [];
 
@@ -69,11 +70,13 @@
                 return;
             }
             products.forEach(p => {
-                // Price: fx_price is stored in the sheet, divide by 10000
-                const rawPrice = p.fx_price;
+                // Access price using bracket notation because column name contains '/'
+                const rawPrice = p[PRICE_COLUMN];
                 let displayPrice = 'N/A';
-                if (rawPrice !== undefined && rawPrice !== null && !isNaN(rawPrice)) {
-                    displayPrice = (rawPrice / 10000).toFixed(2);
+                if (rawPrice !== undefined && rawPrice !== null && !isNaN(parseFloat(rawPrice))) {
+                    // The column value is already divided by 10000? Or raw? Assuming it's the divided value.
+                    // If it's raw (e.g., 45000), then divide by 10000:
+                    displayPrice = (parseFloat(rawPrice) / 10000).toFixed(2);
                 }
                 
                 const div = document.createElement('div');
