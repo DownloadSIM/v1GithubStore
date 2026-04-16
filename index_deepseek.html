@@ -71,7 +71,7 @@
         <div class="filter-group">
             <label>📍 Country</label>
             <select id="countrySelect">
-                <option value="">-- Loading countries --</option>
+                <option value=''>-- Loading countries --</option>
             </select>
         </div>
         <button id="showPlansBtn">🔍 Show plans</button>
@@ -102,7 +102,7 @@
         let current = '';
         for (let i = 0; i < line.length; i++) {
             const ch = line[i];
-            if (ch === '') inQuote = !inQuote;
+            if (ch === '"') inQuote = !inQuote;
             else if (ch === ',' && !inQuote) {
                 result.push(current.trim());
                 current = '';
