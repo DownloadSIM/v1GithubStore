@@ -71,7 +71,7 @@
         <div class="filter-group">
             <label>📍 Country</label>
             <select id="countrySelect">
-                <option value=''>-- Loading countries --</option>
+                <option value="">-- Loading countries --</option>
             </select>
         </div>
         <button id="showPlansBtn">🔍 Show plans</button>
@@ -102,14 +102,23 @@
         let current = '';
         for (let i = 0; i < line.length; i++) {
             const ch = line[i];
-            if (ch === '"') inQuote = !inQuote;
-            else if (ch === ',' && !inQuote) {
+            if (ch === '"') {
+                inQuote = !inQuote;
+            } else if (ch === ',' && !inQuote) {
                 result.push(current.trim());
                 current = '';
-            } else current += ch;
+            } else {
+                current += ch;
+            }
         }
         result.push(current.trim());
         return result;
+    }
+    
+    // Helper to strip leading/trailing double quotes
+    function stripQuotes(str) {
+        if (!str) return '';
+        return str.replace(/^"|"$/g, '');
     }
     
     async function loadCountryList() {
@@ -121,6 +130,7 @@
             if (lines.length < 2) throw new Error('No country data');
             for (let i = 1; i < lines.length; i++) {
                 let country = lines[i].trim();
+                country = stripQuotes(country);   // remove any surrounding quotes
                 if (country) countryList.push(country);
             }
             countryList.sort();
@@ -128,8 +138,8 @@
             select.innerHTML = '<option value="">-- Select a country --</option>';
             for (let c of countryList) {
                 const option = document.createElement('option');
-                option.value = c;
-                option.textContent = c;
+                option.value = c;          // store clean value
+                option.textContent = c;     // display clean name
                 select.appendChild(option);
             }
             document.getElementById('statsPlaceholder').innerHTML = `🌎 ${countryList.length} countries loaded. Select one to see plans.`;
@@ -187,11 +197,14 @@
             return;
         }
         
-        const lowerCountry = selectedCountry.toLowerCase();
+        // Remove quotes from the selected country just in case
+        const cleanCountry = stripQuotes(selectedCountry);
+        const lowerCountry = cleanCountry.toLowerCase();
+        
         const filtered = allProducts.filter(p => p.locationRaw.toLowerCase().includes(lowerCountry));
         
         if (filtered.length === 0) {
-            productListDiv.innerHTML = `<div class="no-results">😞 No eSIM plans found for "${selectedCountry}". Try another country.</div>`;
+            productListDiv.innerHTML = `<div class="no-results">😞 No eSIM plans found for "${cleanCountry}". Try another country.</div>`;
             return;
         }
         
