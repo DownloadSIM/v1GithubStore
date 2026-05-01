@@ -2,327 +2,580 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eSIM Product Finder – Retail Prices</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>eSIM Global Finder – Search Plans by Country</title>
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fb;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f6fa;
             margin: 0;
-            padding: 20px;
-            color: #1e2a3a;
+            padding: 24px 20px;
+            color: #1a2634;
         }
-        .container { max-width: 1300px; margin: 0 auto; }
-        h1 { font-size: 1.8rem; margin-bottom: 0.25rem; color: #0f3b5c; }
-        .subtitle { color: #4a627a; margin-bottom: 2rem; border-left: 4px solid #2c7da0; padding-left: 1rem; }
-        .filter-card {
-            background: white; border-radius: 20px; padding: 1.5rem;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.05); margin-bottom: 2rem;
-            display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem;
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
         }
-        .filter-group { flex: 2; min-width: 250px; }
-        label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #2c3e50; }
-        select {
-            width: 100%; padding: 12px 16px; font-size: 1rem;
-            border: 1px solid #cbd5e1; border-radius: 12px;
-            background-color: white; cursor: pointer;
+
+        /* Header */
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            color: #0a2942;
+            letter-spacing: -0.3px;
         }
-        select:focus { outline: none; border-color: #2c7da0; box-shadow: 0 0 0 3px rgba(44,125,160,0.2); }
-        button {
-            background: #2c7da0; color: white; border: none;
-            padding: 12px 24px; font-size: 1rem; font-weight: 600;
-            border-radius: 40px; cursor: pointer; transition: 0.2s;
+
+        .subhead {
+            color: #4a5b6e;
+            margin-bottom: 2rem;
+            border-left: 4px solid #2c7da0;
+            padding-left: 1rem;
+            font-size: 1rem;
         }
-        button:hover { background: #1f5e7a; transform: translateY(-1px); }
-        .stats {
-            background: #eef2f5; border-radius: 16px; padding: 0.75rem 1.5rem;
-            margin-bottom: 1.5rem; display: inline-block; font-size: 0.9rem;
-        }
-        .product-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 1.5rem;
-        }
-        .product-card {
-            background: white; border-radius: 24px; padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border: 1px solid #e9edf2;
+
+        /* Search + chip area */
+        .search-section {
+            background: white;
+            border-radius: 28px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 18px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
             transition: box-shadow 0.2s;
         }
-        .product-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-        .product-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; color: #0f3b5c; }
-        .product-details { margin: 1rem 0; display: flex; flex-wrap: wrap; gap: 0.8rem; font-size: 0.9rem; }
-        .detail-item { background: #f1f5f9; padding: 0.25rem 0.75rem; border-radius: 30px; }
-        .price { font-size: 1.6rem; font-weight: 800; color: #2c7da0; margin: 0.75rem 0 0.25rem; }
-        .package-code { font-family: monospace; font-size: 0.75rem; color: #5f6c80; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 8px; display: inline-block; }
-        .btn-more-details {
+
+        .chips-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            min-height: 52px;
+            align-items: center;
+        }
+
+        .chip {
+            background: #eef2f9;
+            color: #1f5e7a;
+            padding: 6px 12px 6px 16px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+            border: 1px solid #dce5ed;
+        }
+
+        .chip button {
             background: none;
-            border: 1px solid #2c7da0;
-            color: #2c7da0;
-            padding: 8px 16px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            border-radius: 30px;
+            border: none;
+            font-size: 1.2rem;
+            line-height: 1;
             cursor: pointer;
-            margin-top: 1rem;
+            color: #5c6f87;
+            padding: 0 4px;
+            border-radius: 30px;
+            font-weight: 600;
+        }
+
+        .chip button:hover {
+            color: #c72a2a;
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .input-wrapper {
+            position: relative;
             width: 100%;
-            box-shadow: none;
         }
-        .btn-more-details:hover {
-            background: #eef2f5;
-            transform: none;
+
+        #countryInput {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 1rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 60px;
+            background: white;
+            transition: 0.2s;
+            outline: none;
         }
-        .more-details-content {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px dashed #e9edf2;
-            font-size: 0.85rem;
+
+        #countryInput:focus {
+            border-color: #2c7da0;
+            box-shadow: 0 0 0 3px rgba(44, 125, 160, 0.2);
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 100;
+            margin-top: 8px;
+            border: 1px solid #eef2f5;
             display: none;
         }
+
+        .autocomplete-list div {
+            padding: 10px 18px;
+            cursor: pointer;
+            transition: background 0.1s;
+            font-size: 0.95rem;
+        }
+
+        .autocomplete-list div:hover {
+            background: #f0f4f9;
+        }
+
+        .stats-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 1.2rem;
+        }
+
+        .stats-badge {
+            background: #eef2f5;
+            border-radius: 40px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .clear-btn {
+            background: none;
+            border: none;
+            color: #2c7da0;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 28px;
+            padding: 1.5rem;
+            transition: 0.2s;
+            border: 1px solid #eef2f5;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 30px -12px rgba(0, 0, 0, 0.1);
+            border-color: #dce5ed;
+        }
+
+        .product-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0a2942;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 1rem 0;
+        }
+
+        .detail-chip {
+            background: #f1f5f9;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+        }
+
+        .price {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #1f5e7a;
+            margin: 0.75rem 0 0.5rem;
+        }
+
+        .btn-more {
+            background: none;
+            border: 1px solid #cbdde9;
+            border-radius: 40px;
+            padding: 8px 0;
+            width: 100%;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: 0.2s;
+            color: #2c7da0;
+        }
+
+        .btn-more:hover {
+            background: #f0f6fa;
+            border-color: #2c7da0;
+        }
+
+        .more-details-content {
+            display: none;
+            margin-top: 1rem;
+            border-top: 1px solid #edf2f7;
+            padding-top: 1rem;
+            font-size: 0.85rem;
+        }
+
         .more-details-content.show {
             display: block;
         }
-        .no-results { text-align: center; padding: 3rem; background: white; border-radius: 24px; color: #5f6c80; }
-        footer { margin-top: 3rem; text-align: center; font-size: 0.8rem; color: #7e8c9e; }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 32px;
+            color: #5c6f87;
+        }
+
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #7e8c9e;
+        }
+
         @media (max-width: 700px) {
-            .filter-card { flex-direction: column; align-items: stretch; }
-            button { width: 100%; }
-            .btn-more-details { width: 100%; }
+            body {
+                padding: 16px;
+            }
+
+            .product-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>🌍 eSIM Product Finder</h1>
-    <div class="subtitle">Select a country – see all plans that include it</div>
+    <h1>🌍 eSIM Global Finder</h1>
+    <div class="subhead">Select countries you're travelling to · See plans that match</div>
 
-    <div class="filter-card">
-        <div class="filter-group">
-            <label>📍 Country</label>
-            <select id="countrySelect">
-                <option value="">-- Loading countries --</option>
-            </select>
+    <div class="search-section">
+        <div class="chips-container" id="chipsContainer"></div>
+        <div class="input-wrapper">
+            <input type="text" id="countryInput" placeholder="e.g. Japan, France, Thailand ..." autocomplete="off">
+            <div id="autocompleteList" class="autocomplete-list"></div>
         </div>
-        <button id="showPlansBtn">🔍 Show plans</button>
+        <div style="margin-top: 12px; font-size: 0.75rem; color: #6c7e91;">▼ Click on country name to add</div>
     </div>
 
-    <div id="resultsArea">
-        <div class="stats" id="statsPlaceholder">Loading product catalog...</div>
-        <div id="productList" class="product-grid"></div>
+    <div class="stats-line">
+        <div class="stats-badge" id="statsInfo">Loading products...</div>
+        <button class="clear-btn" id="clearAllBtn" style="display: none;">Clear all countries ✕</button>
     </div>
-    <footer>Data source: eSIMaccess · Retail prices shown</footer>
+
+    <div id="productList" class="product-grid"></div>
+    <footer>Powered by eSIMaccess · Retail prices displayed · Data refreshed automatically</footer>
 </div>
 
 <script>
-    // === CONFIGURATION ===
-    const SHEET_ID = '1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY';
-    const SHEET_NAME = 'LISTING_API_Data';   // your sheet with retail price in column A
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
-    
-    let allProducts = [];      // array of product objects
-    let countrySet = new Set(); // unique countries from locationName
-    
-    // Helper: parse CSV line respecting quotes and commas
-    function parseCSVLine(line) {
-        const result = [];
-        let inQuote = false;
-        let current = '';
-        for (let i = 0; i < line.length; i++) {
-            const ch = line[i];
-            if (ch === '"') {
-                inQuote = !inQuote;
-            } else if (ch === ',' && !inQuote) {
-                result.push(current.trim());
-                current = '';
-            } else {
-                current += ch;
-            }
-        }
-        result.push(current.trim());
-        return result;
-    }
-    
-    // Remove leading/trailing quotes from a string
-    function stripQuotes(str) {
-        if (!str) return '';
-        return str.replace(/^"|"$/g, '');
-    }
-    
-    // Fetch and process the CSV
-    async function loadData() {
+    // ------------------------------------------------------------
+    // 1) CONFIGURATION – use your live Google Apps Script proxy
+    // ------------------------------------------------------------
+    const PROXY_URL = 'https://script.google.com/macros/s/AKfycbyRwtW2S0udHoHlVy69HkKTPt7JDaUydZwwQDRFc0lWxBmsf3U0B1IJajDWpBu6PNOl/exec';
+    const ACTION_LIST = '?action=getPackageList';   // returns full product catalog
+
+    // Global data store
+    let allProducts = [];        // raw products from API
+    let uniqueCountries = [];    // flat array of all countries (no duplicates)
+    let selectedCountries = [];  // current selection
+
+    // DOM elements
+    const countryInput = document.getElementById('countryInput');
+    const autocompleteDiv = document.getElementById('autocompleteList');
+    const chipsContainer = document.getElementById('chipsContainer');
+    const productListDiv = document.getElementById('productList');
+    const statsInfoSpan = document.getElementById('statsInfo');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+
+    // ------------------------------------------------------------
+    // 2) FETCH DATA FROM SECURE PROXY (eSIMaccess API)
+    // ------------------------------------------------------------
+    async function fetchAllPackages() {
         try {
-            const response = await fetch(CSV_URL);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const csvText = await response.text();
-            const lines = csvText.split(/\r?\n/).filter(l => l.trim().length > 0);
-            if (lines.length < 2) throw new Error('No data rows');
-            
-            // Parse header row
-            const headers = parseCSVLine(lines[0]);
-            // Find column indices by header name (exact match from your CSV)
-            const priceIdx = headers.findIndex(h => h === 'DSIM Price');         // column A
-            const nameIdx = headers.findIndex(h => h === 'API name');            // product name
-            const locationIdx = headers.findIndex(h => h === 'API locationName'); // countries
-            const volumeIdx = headers.findIndex(h => h === 'CSV GBs_Binary');     // GB
-            const durationIdx = headers.findIndex(h => h === 'API duration');     // days
-            const packageCodeIdx = headers.findIndex(h => h === 'API packageCode');
-            const operatorsIdx = headers.findIndex(h => h === 'CSV Operators');
-            const countryCodesIdx = headers.findIndex(h => h === 'CSV Country Codes');
-            const activeTypeIdx = headers.findIndex(h => h === 'API activeType');
-            const ipExportIdx = headers.findIndex(h => h === 'API ipExport');
-            const smsStatusIdx = headers.findIndex(h => h === 'API smsStatus');
-            const topUpIdx = headers.findIndex(h => h === 'API suppotTopUpType');
-            
-            if (priceIdx === -1 || nameIdx === -1 || locationIdx === -1) {
-                throw new Error('Required columns not found: DSIM Price, API name, API locationName');
+            statsInfoSpan.innerText = 'Loading products...';
+            const response = await fetch(PROXY_URL + ACTION_LIST);
+            const result = await response.json();
+
+            if (!result.success || !result.data) {
+                throw new Error(result.error || 'Invalid API response');
             }
-            
-            // Process each data row
-            for (let i = 1; i < lines.length; i++) {
-                const row = parseCSVLine(lines[i]);
-                if (row.length <= Math.max(priceIdx, nameIdx, locationIdx)) continue;
-                
-                const locationRaw = row[locationIdx] || '';
-                if (!locationRaw.trim()) continue;
-                
-                // Split countries by comma and clean each one
-                const countries = locationRaw.split(',').map(c => stripQuotes(c.trim())).filter(c => c.length > 0);
-                if (countries.length === 0) continue;
-                
-                // Extract retail price (already formatted with $)
-                let price = row[priceIdx];
-                // If price is numeric without $, add $ sign (safe check)
-                if (price && !price.startsWith('$') && !isNaN(parseFloat(price))) {
-                    price = '$' + parseFloat(price).toFixed(2);
-                }
-                
-                const product = {
-                    name: row[nameIdx] || 'Unnamed',
-                    price: price || 'N/A',
-                    volume: (volumeIdx !== -1 && row[volumeIdx]) ? row[volumeIdx] : '—',
-                    duration: (durationIdx !== -1 && row[durationIdx]) ? row[durationIdx] : '—',
-                    packageCode: (packageCodeIdx !== -1 && row[packageCodeIdx]) ? row[packageCodeIdx] : '',
-                    countries: countries,
-                    // Extra fields for "More Details"
-                    operators: (operatorsIdx !== -1) ? row[operatorsIdx] : '',
-                    countryCodes: (countryCodesIdx !== -1) ? row[countryCodesIdx] : '',
-                    activeType: (activeTypeIdx !== -1) ? row[activeTypeIdx] : '',
-                    ipExport: (ipExportIdx !== -1) ? row[ipExportIdx] : '',
-                    smsStatus: (smsStatusIdx !== -1) ? row[smsStatusIdx] : '',
-                    supportTopUp: (topUpIdx !== -1) ? row[topUpIdx] : ''
-                };
-                
-                allProducts.push(product);
-                // Add countries to global set
-                countries.forEach(c => countrySet.add(c));
-            }
-            
-            // Populate country dropdown
-            const sortedCountries = Array.from(countrySet).sort();
-            const selectEl = document.getElementById('countrySelect');
-            selectEl.innerHTML = '<option value="">-- Select a country --</option>';
-            for (const country of sortedCountries) {
-                const option = document.createElement('option');
-                option.value = country;
-                option.textContent = country;
-                selectEl.appendChild(option);
-            }
-            
-            document.getElementById('statsPlaceholder').innerHTML = `📦 ${allProducts.length} total plans · 🌎 ${sortedCountries.length} countries available`;
-        } catch (error) {
-            console.error('Load error:', error);
-            document.getElementById('statsPlaceholder').innerHTML = '❌ Failed to load data. Check that the sheet is published and accessible.';
+
+            // result.data is the full package list from eSIMaccess API
+            const packages = result.data;
+            allProducts = packages.map(pkg => ({
+                ...pkg,
+                // ensure locationName is treated as a string and split into a real array
+                countriesRaw: pkg.locationName || '',
+                countriesList: (pkg.locationName || '').split(',').map(c => c.trim()).filter(c => c)
+            }));
+
+            // Build unique sorted countries list
+            const countrySet = new Set();
+            allProducts.forEach(prod => {
+                prod.countriesList.forEach(c => countrySet.add(c));
+            });
+            uniqueCountries = Array.from(countrySet).sort((a, b) => a.localeCompare(b));
+
+            statsInfoSpan.innerText = `📡 ${allProducts.length} plans · ${uniqueCountries.length} destinations`;
+            renderSelectedChips();   // initial render
+            filterProductsAndRender(); // show all plans by default? (or wait selection)
+        } catch (err) {
+            console.error(err);
+            statsInfoSpan.innerText = '❌ Failed to load products. Check proxy deployment.';
+            productListDiv.innerHTML = `<div class="no-results">⚠️ Could not load product data. Please check that your proxy is active and CORS is not blocking.</div>`;
         }
     }
-    
-    // Display products for selected country
-    function displayProducts(selectedCountry) {
-        const container = document.getElementById('productList');
-        if (!selectedCountry) {
-            container.innerHTML = '<div class="no-results">🌍 Please select a country from the dropdown.</div>';
+
+    // ------------------------------------------------------------
+    // 3) AUTOCOMPLETE LOGIC (country search)
+    // ------------------------------------------------------------
+    function updateAutocomplete(searchText) {
+        const term = searchText.trim().toLowerCase();
+        if (!term) {
+            autocompleteDiv.style.display = 'none';
             return;
         }
-        
-        const filtered = allProducts.filter(p => p.countries.includes(selectedCountry));
-        
-        if (filtered.length === 0) {
-            container.innerHTML = `<div class="no-results">😞 No eSIM plans found for "${selectedCountry}". Try another country.</div>`;
+
+        const matches = uniqueCountries.filter(country =>
+            country.toLowerCase().includes(term) && !selectedCountries.includes(country)
+        ).slice(0, 12);  // limit for readability
+
+        if (matches.length === 0) {
+            autocompleteDiv.style.display = 'none';
             return;
         }
-        
+
+        // build suggestions
+        autocompleteDiv.innerHTML = '';
+        matches.forEach(match => {
+            const div = document.createElement('div');
+            div.textContent = match;
+            div.addEventListener('click', () => {
+                addCountry(match);
+                countryInput.value = '';
+                autocompleteDiv.style.display = 'none';
+            });
+            autocompleteDiv.appendChild(div);
+        });
+        autocompleteDiv.style.display = 'block';
+    }
+
+    // ------------------------------------------------------------
+    // 4) MANAGE SELECTED COUNTRIES (chips)
+    // ------------------------------------------------------------
+    function addCountry(country) {
+        if (!country || selectedCountries.includes(country)) return;
+        selectedCountries.push(country);
+        renderSelectedChips();
+        filterProductsAndRender();
+        countryInput.value = '';
+        autocompleteDiv.style.display = 'none';
+        clearAllBtn.style.display = selectedCountries.length ? 'inline-block' : 'none';
+    }
+
+    function removeCountry(country) {
+        selectedCountries = selectedCountries.filter(c => c !== country);
+        renderSelectedChips();
+        filterProductsAndRender();
+        clearAllBtn.style.display = selectedCountries.length ? 'inline-block' : 'none';
+    }
+
+    function clearAllCountries() {
+        selectedCountries = [];
+        renderSelectedChips();
+        filterProductsAndRender();
+        clearAllBtn.style.display = 'none';
+        countryInput.value = '';
+        autocompleteDiv.style.display = 'none';
+    }
+
+    function renderSelectedChips() {
+        chipsContainer.innerHTML = '';
+        if (selectedCountries.length === 0) {
+            chipsContainer.innerHTML = '<span style="color: #6c7e91; font-size: 0.85rem;">✈️ No country selected — search & click to add</span>';
+            return;
+        }
+
+        selectedCountries.forEach(country => {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerHTML = `${country} <button data-country="${country}">✕</button>`;
+            chip.querySelector('button').addEventListener('click', (e) => {
+                e.stopPropagation();
+                removeCountry(country);
+            });
+            chipsContainer.appendChild(chip);
+        });
+    }
+
+    // ------------------------------------------------------------
+    // 5) CORE PRODUCT FILTERING (OR logic)
+    // ------------------------------------------------------------
+    function filterProductsAndRender() {
+        if (!allProducts.length) return;
+
+        let filtered = [];
+        if (selectedCountries.length === 0) {
+            // optional: show nothing? Better to show empty + message
+            filtered = [];
+        } else {
+            filtered = allProducts.filter(product =>
+                product.countriesList.some(c => selectedCountries.includes(c))
+            );
+        }
+
+        renderProductCards(filtered);
+    }
+
+    // ------------------------------------------------------------
+    // 6) DISPLAY PRODUCT CARDS + "More Details" (API proxy)
+    // ------------------------------------------------------------
+    async function fetchAndDisplayMoreDetails(packageCode, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        // if already loaded, just toggle
+        if (container.innerHTML.trim() !== '') {
+            container.classList.toggle('show');
+            return;
+        }
+
+        container.innerHTML = '<div style="padding: 8px 0;">📡 Loading live details...</div>';
+        container.classList.add('show');
+
+        try {
+            const url = `${PROXY_URL}?action=getPackageDetails&packageCode=${encodeURIComponent(packageCode)}`;
+            const resp = await fetch(url);
+            const result = await resp.json();
+
+            if (!result.success || !result.data) {
+                container.innerHTML = `<div class="error-more">⚠️ Could not load details: ${result.error || 'Unknown error'}</div>`;
+                return;
+            }
+
+            const details = result.data;
+            let moreHtml = '<div style="margin-top: 0.5rem;">';
+            if (details.speed) moreHtml += `<p><strong>⚡ Speed:</strong> ${details.speed}</p>`;
+            if (details.fupPolicy) moreHtml += `<p><strong>📜 FUP:</strong> ${details.fupPolicy}</p>`;
+            if (details.supportTopUpType) moreHtml += `<p><strong>🔁 Top‑up:</strong> ${details.supportTopUpType}</p>`;
+            if (details.activeType) moreHtml += `<p><strong>🔌 Activation:</strong> ${details.activeType}</p>`;
+            if (details.ipExport) moreHtml += `<p><strong>📍 IP Route:</strong> ${details.ipExport}</p>`;
+            if (details.smsStatus) moreHtml += `<p><strong>📱 SMS:</strong> ${details.smsStatus}</p>`;
+            if (!details.speed && !details.fupPolicy && !details.supportTopUpType && !details.activeType) {
+                moreHtml += '<p>No extra info from API for this plan.</p>';
+            }
+            moreHtml += '</div>';
+            container.innerHTML = moreHtml;
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = '<div class="error-more">❌ Failed to fetch extra details.</div>';
+        }
+    }
+
+    function renderProductCards(productsToShow) {
+        if (productsToShow.length === 0) {
+            productListDiv.innerHTML = `<div class="no-results">🌎 No eSIM plans match the selected countries. Try adding more destinations.</div>`;
+            statsInfoSpan.innerText = `📡 ${allProducts.length} plans · 0 matches · ${uniqueCountries.length} destinations`;
+            return;
+        }
+
         let html = '';
-        for (const prod of filtered) {
-            let volumeDisplay = prod.volume;
-            if (!isNaN(parseFloat(volumeDisplay)) && isFinite(volumeDisplay)) volumeDisplay = `${volumeDisplay} GB`;
-            let durationDisplay = prod.duration;
-            if (durationDisplay !== '—' && !isNaN(parseInt(durationDisplay))) durationDisplay = `${durationDisplay} days`;
-            
+        for (const prod of productsToShow) {
+            // format volume and duration intelligently
+            let volume = prod.volume ? `${prod.volume}${prod.volumeUnit ? ' ' + prod.volumeUnit : ' GB'}` : '—';
+            if (prod.volume && prod.volumeUnit === 'GB') volume = `${prod.volume} GB`;
+            let duration = prod.duration ? `${prod.duration} ${prod.durationUnit || 'days'}` : '—';
+            let priceDisplay = prod.retailPrice ? (prod.currencyCode ? `${prod.currencyCode} ${prod.retailPrice}` : `$${prod.retailPrice}`) : (prod.price ? `$${prod.price}` : 'N/A');
+
+            const safeId = `details-${Date.now()}-${Math.random()}-${prod.packageCode}`.replace(/[^a-zA-Z0-9-]/g, '');
+
             html += `
-                <div class="product-card" data-package="${escapeHtml(prod.packageCode)}">
-                    <div class="product-name">${escapeHtml(prod.name)}</div>
+                <div class="product-card">
+                    <div class="product-name">${escapeHtml(prod.name || prod.slug || 'eSIM Plan')}</div>
                     <div class="product-details">
-                        <span class="detail-item">📶 ${escapeHtml(volumeDisplay)}</span>
-                        <span class="detail-item">⏱️ ${escapeHtml(durationDisplay)}</span>
+                        <span class="detail-chip">📶 ${escapeHtml(volume)}</span>
+                        <span class="detail-chip">⏱️ ${escapeHtml(duration)}</span>
                     </div>
-                    <div class="price">${escapeHtml(prod.price)}</div>
-                    ${prod.packageCode ? `<div class="package-code">📦 ${escapeHtml(prod.packageCode)}</div>` : ''}
-                    <button class="btn-more-details" data-package="${escapeHtml(prod.packageCode)}">More Details</button>
-                    <div class="more-details-content" id="details-${escapeHtml(prod.packageCode)}"></div>
+                    <div class="price">${escapeHtml(priceDisplay)}</div>
+                    <div class="package-code" style="font-size:0.7rem; color:#6c7e91;">SKU: ${escapeHtml(prod.packageCode || 'N/A')}</div>
+                    <button class="btn-more" data-package="${escapeHtml(prod.packageCode)}" data-target="${safeId}">🔍 More Details</button>
+                    <div id="${safeId}" class="more-details-content"></div>
                 </div>
             `;
         }
-        container.innerHTML = html;
-        
-        // Attach "More Details" handlers
-        document.querySelectorAll('.btn-more-details').forEach(btn => {
+
+        productListDiv.innerHTML = html;
+
+        // attach event listeners after rendering
+        document.querySelectorAll('.btn-more').forEach(btn => {
+            const packageCode = btn.getAttribute('data-package');
+            const targetId = btn.getAttribute('data-target');
+            if (!packageCode || !targetId) return;
             btn.addEventListener('click', (e) => {
-                const pkg = btn.getAttribute('data-package');
-                const detailsDiv = document.getElementById(`details-${pkg}`);
-                if (!detailsDiv) return;
-                
-                // Find the corresponding product object
-                const product = allProducts.find(p => p.packageCode === pkg);
-                if (!product) return;
-                
-                if (detailsDiv.innerHTML.trim() === '') {
-                    // Build details from extra fields
-                    let detailsHtml = '<div style="margin-top: 0.5rem;">';
-                    if (product.smsStatus) detailsHtml += `<p><strong>SMS:</strong> ${escapeHtml(product.smsStatus)}</p>`;
-                    if (product.supportTopUp) detailsHtml += `<p><strong>Top-up:</strong> ${escapeHtml(product.supportTopUp)}</p>`;
-                    if (product.activeType) detailsHtml += `<p><strong>Activation:</strong> ${escapeHtml(product.activeType)}</p>`;
-                    if (product.ipExport) detailsHtml += `<p><strong>IP Route:</strong> ${escapeHtml(product.ipExport)}</p>`;
-                    if (product.operators) detailsHtml += `<p><strong>Operators:</strong> ${escapeHtml(product.operators.substring(0, 150))}${product.operators.length > 150 ? '…' : ''}</p>`;
-                    if (product.countryCodes) detailsHtml += `<p><strong>Country Codes:</strong> ${escapeHtml(product.countryCodes)}</p>`;
-                    if (!product.smsStatus && !product.supportTopUp && !product.activeType && !product.operators) {
-                        detailsHtml += '<p>No additional details available for this plan.</p>';
-                    }
-                    detailsHtml += '</div>';
-                    detailsDiv.innerHTML = detailsHtml;
-                }
-                detailsDiv.classList.toggle('show');
+                e.preventDefault();
+                fetchAndDisplayMoreDetails(packageCode, targetId);
             });
         });
+
+        statsInfoSpan.innerText = `📡 ${allProducts.length} plans · ${productsToShow.length} matches · ${uniqueCountries.length} destinations`;
     }
-    
+
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
+        return str.replace(/[&<>]/g, function (m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
             if (m === '>') return '&gt;';
             return m;
         });
     }
-    
-    // Event listener
-    document.getElementById('showPlansBtn').addEventListener('click', () => {
-        const selected = document.getElementById('countrySelect').value;
-        if (selected) displayProducts(selected);
-        else alert('Please select a country first.');
+
+    // ------------------------------------------------------------
+    // 7) EVENT HANDLERS
+    // ------------------------------------------------------------
+    countryInput.addEventListener('input', (e) => {
+        updateAutocomplete(e.target.value);
     });
-    
-    // Initial load
-    loadData();
+
+    countryInput.addEventListener('focus', () => {
+        if (countryInput.value.trim()) updateAutocomplete(countryInput.value);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!autocompleteDiv.contains(e.target) && e.target !== countryInput) {
+            autocompleteDiv.style.display = 'none';
+        }
+    });
+
+    clearAllBtn.addEventListener('click', clearAllCountries);
+
+    // Initialize
+    fetchAllPackages();
 </script>
 </body>
 </html>
