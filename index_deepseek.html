@@ -5,9 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>eSIM Global Finder</title>
     <style>
-        /* (keep your existing styles – unchanged) */
         * { box-sizing: border-box; }
-        body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; background: #f4f6fa; margin: 0; padding: 24px 20px; color: #1a2634; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f4f6fa;
+            margin: 0;
+            padding: 24px 20px;
+            color: #1a2634;
+        }
         .container { max-width: 1300px; margin: 0 auto; }
         h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.25rem; color: #0a2942; }
         .subhead { color: #4a5b6e; margin-bottom: 2rem; border-left: 4px solid #2c7da0; padding-left: 1rem; }
@@ -25,17 +30,18 @@
         .stats-badge { background: #eef2f5; border-radius: 40px; padding: 6px 16px; font-size: 0.85rem; }
         .clear-btn { background: none; border: none; color: #2c7da0; font-size: 0.85rem; cursor: pointer; text-decoration: underline; }
         .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1.5rem; }
-        .product-card { background: white; border-radius: 28px; padding: 1.5rem; border: 1px solid #eef2f5; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .product-card { background: white; border-radius: 28px; padding: 1.5rem; border: 1px solid #eef2f5; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: 0.2s; }
+        .product-card:hover { transform: translateY(-3px); box-shadow: 0 18px 30px -12px rgba(0,0,0,0.1); }
         .product-name { font-size: 1.25rem; font-weight: 700; color: #0a2942; margin-bottom: 0.5rem; }
         .product-details { display: flex; flex-wrap: wrap; gap: 10px; margin: 1rem 0; }
         .detail-chip { background: #f1f5f9; padding: 4px 12px; border-radius: 30px; font-size: 0.8rem; }
         .price { font-size: 1.8rem; font-weight: 800; color: #1f5e7a; margin: 0.75rem 0 0.5rem; }
-        .btn-more { background: none; border: 1px solid #cbdde9; border-radius: 40px; padding: 8px 0; width: 100%; font-weight: 600; cursor: pointer; margin-top: 16px; color: #2c7da0; }
+        .btn-more { background: none; border: 1px solid #cbdde9; border-radius: 40px; padding: 8px 0; width: 100%; font-weight: 600; cursor: pointer; margin-top: 16px; color: #2c7da0; transition: 0.2s; }
         .btn-more:hover { background: #f0f6fa; border-color: #2c7da0; }
         .more-details-content { display: none; margin-top: 1rem; border-top: 1px solid #edf2f7; padding-top: 1rem; font-size: 0.85rem; }
         .more-details-content.show { display: block; }
         .no-results { text-align: center; padding: 3rem; background: white; border-radius: 32px; color: #5c6f87; }
-        .error-banner { background: #fff0f0; border-left: 4px solid #e53e3e; padding: 1rem; border-radius: 16px; margin-bottom: 1rem; color: #742a2a; }
+        .error-banner { background: #fff0f0; border-left: 4px solid #e53e3e; padding: 1rem; border-radius: 16px; margin-bottom: 1rem; color: #742a2a; word-break: break-word; }
         footer { margin-top: 3rem; text-align: center; font-size: 0.75rem; color: #7e8c9e; }
         @media (max-width: 700px) { body { padding: 16px; } .product-grid { grid-template-columns: 1fr; } }
     </style>
@@ -64,7 +70,9 @@
 </div>
 
 <script>
-    // === YOUR PROXY URL ===
+    // ============================================================
+    // YOUR SECURE PROXY URL (already deployed)
+    // ============================================================
     const PROXY_URL = 'https://script.google.com/macros/s/AKfycbyRwtW2S0udHoHlVy69HkKTPt7JDaUydZwwQDRFc0lWxBmsf3U0B1IJajDWpBu6PNOl/exec';
     const ACTION_LIST = '?action=getPackageList';
 
@@ -79,7 +87,9 @@
     const statsInfoSpan = document.getElementById('statsInfo');
     const clearAllBtn = document.getElementById('clearAllBtn');
 
-    // Fetch products with detailed error logging
+    // ------------------------------------------------------------
+    // 1) FETCH PRODUCTS FROM PROXY
+    // ------------------------------------------------------------
     async function fetchAllPackages() {
         try {
             statsInfoSpan.innerText = 'Loading products...';
@@ -87,46 +97,51 @@
             console.log('Fetching from:', url);
             const response = await fetch(url);
             console.log('Response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
+            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             const text = await response.text();
             console.log('Raw response (first 200 chars):', text.substring(0, 200));
-            
             let result;
             try {
                 result = JSON.parse(text);
             } catch (e) {
-                throw new Error(`Invalid JSON response. The proxy might be returning HTML instead of JSON. Response preview: ${text.substring(0, 150)}`);
+                throw new Error(`Invalid JSON. Response preview: ${text.substring(0, 150)}`);
             }
-            
             if (!result.success || !result.data) {
                 throw new Error(result.error || 'Proxy returned success=false');
             }
-            
-            const packages = result.data;
+
+            // *** CRITICAL FIX: The API returns an object with a 'packageList' array ***
+            const packages = result.data.packageList;
+            if (!packages || !Array.isArray(packages)) {
+                throw new Error('API response does not contain a packageList array');
+            }
+
             allProducts = packages.map(pkg => ({
                 ...pkg,
-                countriesList: (pkg.locationName || '').split(',').map(c => c.trim()).filter(c => c)
+                // Convert locationName or location field to array
+                countriesList: (pkg.locationName || pkg.location || '').split(',').map(c => c.trim()).filter(c => c)
             }));
-            
+
+            // Build list of unique countries
             const countrySet = new Set();
-            allProducts.forEach(prod => prod.countriesList.forEach(c => countrySet.add(c)));
+            allProducts.forEach(prod => {
+                prod.countriesList.forEach(c => countrySet.add(c));
+            });
             uniqueCountries = Array.from(countrySet).sort((a, b) => a.localeCompare(b));
-            
+
             statsInfoSpan.innerText = `📡 ${allProducts.length} plans · ${uniqueCountries.length} destinations`;
             renderSelectedChips();
             filterProductsAndRender();
         } catch (err) {
             console.error('Fetch error:', err);
             statsInfoSpan.innerHTML = `❌ ${err.message}`;
-            productListDiv.innerHTML = `<div class="error-banner">⚠️ Could not load product data.<br><strong>Error details:</strong> ${escapeHtml(err.message)}<br><br>👉 Make sure your Apps Script proxy is deployed with access set to "Anyone" and that the URL is correct.</div>`;
+            productListDiv.innerHTML = `<div class="error-banner">⚠️ Could not load product data.<br><strong>Error details:</strong> ${escapeHtml(err.message)}<br><br>👉 Check that your proxy is deployed with "Anyone" access and the URL is correct.</div>`;
         }
     }
 
-    // Auto‑complete and country selection (same as before)
+    // ------------------------------------------------------------
+    // AUTOCOMPLETE
+    // ------------------------------------------------------------
     function updateAutocomplete(searchText) {
         const term = searchText.trim().toLowerCase();
         if (!term) { autocompleteDiv.style.display = 'none'; return; }
@@ -188,8 +203,16 @@
             filtered = allProducts.filter(p => p.countriesList.some(c => selectedCountries.includes(c)));
         }
         renderProductCards(filtered);
+        if (selectedCountries.length === 0) {
+            statsInfoSpan.innerText = `📡 ${allProducts.length} plans · ${uniqueCountries.length} destinations · (select a country)`;
+        } else {
+            statsInfoSpan.innerText = `📡 ${allProducts.length} plans · ${filtered.length} matches · ${uniqueCountries.length} destinations`;
+        }
     }
 
+    // ------------------------------------------------------------
+    // MORE DETAILS (calls proxy with getPackageDetails)
+    // ------------------------------------------------------------
     async function fetchAndShowDetails(packageCode, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -222,7 +245,6 @@
     function renderProductCards(products) {
         if (!products.length) {
             productListDiv.innerHTML = `<div class="no-results">🌎 No eSIM plans match the selected countries. Try adding more destinations.</div>`;
-            statsInfoSpan.innerText = `📡 ${allProducts.length} plans · 0 matches · ${uniqueCountries.length} destinations`;
             return;
         }
         let html = '';
@@ -251,16 +273,27 @@
             const target = btn.getAttribute('data-target');
             btn.addEventListener('click', () => fetchAndShowDetails(pkg, target));
         });
-        statsInfoSpan.innerText = `📡 ${allProducts.length} plans · ${products.length} matches · ${uniqueCountries.length} destinations`;
     }
 
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
 
+    // ------------------------------------------------------------
+    // EVENT LISTENERS
+    // ------------------------------------------------------------
     countryInput.addEventListener('input', (e) => updateAutocomplete(e.target.value));
     countryInput.addEventListener('focus', () => { if (countryInput.value.trim()) updateAutocomplete(countryInput.value); });
     document.addEventListener('click', (e) => { if (!autocompleteDiv.contains(e.target) && e.target !== countryInput) autocompleteDiv.style.display = 'none'; });
     clearAllBtn.addEventListener('click', clearAllCountries);
 
+    // START
     fetchAllPackages();
 </script>
 </body>
