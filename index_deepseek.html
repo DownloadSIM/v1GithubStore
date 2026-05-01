@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eSIM Product Finder – Multi‑Country Selection</title>
+    <title>eSIM Product Finder – Multi‑Country (Dropdown)</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -16,9 +16,9 @@
         .container { max-width: 1300px; margin: 0 auto; }
         h1 { font-size: 1.8rem; margin-bottom: 0.25rem; color: #0f3b5c; }
         .subtitle { color: #4a627a; margin-bottom: 2rem; border-left: 4px solid #2c7da0; padding-left: 1rem; }
-        
-        /* Multi‑select styles */
-        .multiselect-container {
+
+        /* Country selector card */
+        .selector-card {
             background: white;
             border-radius: 20px;
             padding: 1.5rem;
@@ -56,24 +56,85 @@
         }
         .chip button:hover { color: #c72a2a; }
         
-        .search-input {
-            width: 100%;
-            padding: 12px 16px;
-            font-size: 1rem;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 60px;
-            margin-bottom: 16px;
-            outline: none;
+        .action-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
         }
-        .search-input:focus { border-color: #2c7da0; box-shadow: 0 0 0 3px rgba(44,125,160,0.2); }
-        
-        .checkbox-list {
-            max-height: 240px;
+        .open-dropdown-btn {
+            background: #2c7da0;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-radius: 40px;
+            cursor: pointer;
+        }
+        .show-plans-btn {
+            background: #1f5e7a;
+            color: white;
+            border: none;
+            padding: 10px 28px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 40px;
+            cursor: pointer;
+        }
+        .show-plans-btn:hover, .open-dropdown-btn:hover { opacity: 0.9; }
+
+        /* Dropdown overlay */
+        .dropdown-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .dropdown-panel {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            border-radius: 28px;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .dropdown-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eef2f5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dropdown-header h3 { margin: 0; font-size: 1.2rem; }
+        .close-dropdown {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #5c6f87;
+        }
+        .dropdown-search {
+            padding: 12px 20px;
+            border-bottom: 1px solid #eef2f5;
+        }
+        .dropdown-search input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 40px;
+            font-size: 0.9rem;
+        }
+        .checkbox-container {
+            flex: 1;
             overflow-y: auto;
-            border: 1px solid #eef2f5;
-            border-radius: 16px;
-            padding: 8px 12px;
-            background: #fefefe;
+            padding: 12px 20px;
         }
         .checkbox-item {
             display: flex;
@@ -82,29 +143,33 @@
             padding: 6px 8px;
             cursor: pointer;
             border-radius: 12px;
-            transition: background 0.1s;
         }
         .checkbox-item:hover { background: #f0f4f9; }
         .checkbox-item input { width: 18px; height: 18px; cursor: pointer; }
         .checkbox-item label { flex: 1; cursor: pointer; font-size: 0.9rem; }
-        
-        .select-actions {
+        .dropdown-actions {
+            padding: 12px 20px;
+            border-top: 1px solid #eef2f5;
             display: flex;
-            gap: 12px;
-            margin-top: 12px;
             justify-content: flex-end;
+            gap: 12px;
         }
-        .select-actions button {
+        .dropdown-actions button {
             background: none;
             border: none;
-            color: #2c7da0;
-            font-size: 0.85rem;
-            cursor: pointer;
-            padding: 4px 12px;
+            padding: 8px 16px;
             border-radius: 30px;
+            cursor: pointer;
+            font-weight: 500;
         }
-        .select-actions button:hover { background: #eef2f5; }
-        
+        .dropdown-actions .apply-btn {
+            background: #2c7da0;
+            color: white;
+        }
+        .dropdown-actions .cancel-btn {
+            background: #eef2f5;
+        }
+
         .stats {
             background: #eef2f5;
             border-radius: 16px;
@@ -157,25 +222,41 @@
         .no-results { text-align: center; padding: 3rem; background: white; border-radius: 24px; color: #5f6c80; }
         footer { margin-top: 3rem; text-align: center; font-size: 0.8rem; color: #7e8c9e; }
         @media (max-width: 700px) {
-            .filter-card { flex-direction: column; align-items: stretch; }
+            .action-bar { flex-direction: column; align-items: stretch; }
             button { width: 100%; }
-            .btn-more-details { width: 100%; }
         }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>🌍 eSIM Product Finder</h1>
-    <div class="subtitle">Select one or more countries – see all plans that match</div>
+    <div class="subtitle">Select one or more countries – then click “Show plans”</div>
 
-    <!-- Multi‑select widget -->
-    <div class="multiselect-container">
+    <!-- Country selection card -->
+    <div class="selector-card">
+        <!-- Selected countries as chips -->
         <div id="selectedChips" class="selected-chips"></div>
-        <input type="text" id="countrySearchInput" class="search-input" placeholder="Search for a country..." autocomplete="off">
-        <div id="checkboxList" class="checkbox-list"></div>
-        <div class="select-actions">
-            <button id="selectAllBtn">Select All</button>
-            <button id="clearAllBtn">Clear All</button>
+        <div class="action-bar">
+            <button id="openDropdownBtn" class="open-dropdown-btn">✈️ Select Countries</button>
+            <button id="showPlansBtn" class="show-plans-btn">🔍 Show plans</button>
+        </div>
+    </div>
+
+    <!-- Dropdown overlay (hidden by default) -->
+    <div id="dropdownOverlay" class="dropdown-overlay">
+        <div class="dropdown-panel">
+            <div class="dropdown-header">
+                <h3>Choose countries</h3>
+                <button id="closeDropdownBtn" class="close-dropdown">&times;</button>
+            </div>
+            <div class="dropdown-search">
+                <input type="text" id="countryFilterInput" placeholder="Search countries..." autocomplete="off">
+            </div>
+            <div id="checkboxContainer" class="checkbox-container"></div>
+            <div class="dropdown-actions">
+                <button id="cancelDropdownBtn" class="cancel-btn">Cancel</button>
+                <button id="applyCountriesBtn" class="apply-btn">Apply</button>
+            </div>
         </div>
     </div>
 
@@ -191,46 +272,44 @@
     const SHEET_ID = '1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY';
     const SHEET_NAME = 'LISTING_API_Data';
     const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
-    
-    let allProducts = [];           // array of product objects
-    let allCountries = [];          // sorted list of unique country names
-    let selectedCountries = [];     // currently selected countries
+
+    let allProducts = [];
+    let allCountries = [];
+    let selectedCountries = [];      // currently selected (will be applied only on "Show plans")
 
     // DOM elements
     const selectedChipsDiv = document.getElementById('selectedChips');
-    const countrySearchInput = document.getElementById('countrySearchInput');
-    const checkboxListDiv = document.getElementById('checkboxList');
+    const openDropdownBtn = document.getElementById('openDropdownBtn');
+    const showPlansBtn = document.getElementById('showPlansBtn');
+    const dropdownOverlay = document.getElementById('dropdownOverlay');
+    const closeDropdownBtn = document.getElementById('closeDropdownBtn');
+    const cancelDropdownBtn = document.getElementById('cancelDropdownBtn');
+    const applyCountriesBtn = document.getElementById('applyCountriesBtn');
+    const countryFilterInput = document.getElementById('countryFilterInput');
+    const checkboxContainer = document.getElementById('checkboxContainer');
     const statsPlaceholder = document.getElementById('statsPlaceholder');
     const productListDiv = document.getElementById('productList');
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    const clearAllBtn = document.getElementById('clearAllBtn');
 
-    // Helper: parse CSV line (handles quotes and commas)
+    // Helper: parse CSV line
     function parseCSVLine(line) {
         const result = [];
         let inQuote = false;
         let current = '';
         for (let i = 0; i < line.length; i++) {
             const ch = line[i];
-            if (ch === '"') {
-                inQuote = !inQuote;
-            } else if (ch === ',' && !inQuote) {
+            if (ch === '"') inQuote = !inQuote;
+            else if (ch === ',' && !inQuote) {
                 result.push(current.trim());
                 current = '';
-            } else {
-                current += ch;
-            }
+            } else current += ch;
         }
         result.push(current.trim());
         return result;
     }
+    function stripQuotes(str) { return str ? str.replace(/^"|"$/g, '') : ''; }
+    function escapeHtml(str) { return str ? str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')) : ''; }
 
-    function stripQuotes(str) {
-        if (!str) return '';
-        return str.replace(/^"|"$/g, '');
-    }
-
-    // Fetch and load data from Google Sheets CSV
+    // Load data from Google Sheets
     async function loadData() {
         try {
             statsPlaceholder.innerText = 'Loading product catalog...';
@@ -254,9 +333,8 @@
             const smsStatusIdx = headers.findIndex(h => h === 'API smsStatus');
             const topUpIdx = headers.findIndex(h => h === 'API suppotTopUpType');
 
-            if (priceIdx === -1 || nameIdx === -1 || locationIdx === -1) {
-                throw new Error('Required columns not found: DSIM Price, API name, API locationName');
-            }
+            if (priceIdx === -1 || nameIdx === -1 || locationIdx === -1)
+                throw new Error('Required columns not found');
 
             const countrySet = new Set();
             const products = [];
@@ -267,13 +345,12 @@
                 const locationRaw = row[locationIdx] || '';
                 if (!locationRaw.trim()) continue;
 
-                const countries = locationRaw.split(',').map(c => stripQuotes(c.trim())).filter(c => c.length > 0);
-                if (countries.length === 0) continue;
+                const countries = locationRaw.split(',').map(c => stripQuotes(c.trim())).filter(c => c);
+                if (!countries.length) continue;
 
                 let price = row[priceIdx];
-                if (price && !price.startsWith('$') && !isNaN(parseFloat(price))) {
+                if (price && !price.startsWith('$') && !isNaN(parseFloat(price)))
                     price = '$' + parseFloat(price).toFixed(2);
-                }
 
                 products.push({
                     name: row[nameIdx] || 'Unnamed',
@@ -289,65 +366,25 @@
                     smsStatus: (smsStatusIdx !== -1) ? row[smsStatusIdx] : '',
                     supportTopUp: (topUpIdx !== -1) ? row[topUpIdx] : ''
                 });
-
                 countries.forEach(c => countrySet.add(c));
             }
 
             allProducts = products;
-            allCountries = Array.from(countrySet).sort((a, b) => a.localeCompare(b));
-
-            statsPlaceholder.innerHTML = `📦 ${allProducts.length} total plans · 🌎 ${allCountries.length} countries available`;
-            renderCheckboxList(allCountries);
-            updateSelectedChips();
-            filterProductsAndRender();
-        } catch (error) {
-            console.error('Load error:', error);
-            statsPlaceholder.innerHTML = '❌ Failed to load data. Check that the sheet is published and accessible.';
-            productListDiv.innerHTML = '<div class="no-results">⚠️ Could not load product data.</div>';
+            allCountries = Array.from(countrySet).sort((a,b) => a.localeCompare(b));
+            statsPlaceholder.innerHTML = `📦 ${allProducts.length} total plans · 🌎 ${allCountries.length} countries available (select countries, then click "Show plans")`;
+            updateChipsDisplay();
+        } catch (err) {
+            console.error(err);
+            statsPlaceholder.innerHTML = '❌ Failed to load data. Check sheet publication.';
+            productListDiv.innerHTML = '<div class="no-results">Error loading product data.</div>';
         }
     }
 
-    // Render checkboxes based on current search filter
-    function renderCheckboxList(filteredCountries) {
-        if (!filteredCountries) filteredCountries = allCountries;
-        checkboxListDiv.innerHTML = '';
-        filteredCountries.forEach(country => {
-            const isChecked = selectedCountries.includes(country);
-            const div = document.createElement('div');
-            div.className = 'checkbox-item';
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.checked = isChecked;
-            cb.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    if (!selectedCountries.includes(country)) {
-                        selectedCountries.push(country);
-                        updateSelectedChips();
-                        filterProductsAndRender();
-                    }
-                } else {
-                    selectedCountries = selectedCountries.filter(c => c !== country);
-                    updateSelectedChips();
-                    filterProductsAndRender();
-                }
-                // Re-render checkboxes to keep the list in sync (preserve search filter)
-                const searchTerm = countrySearchInput.value.trim().toLowerCase();
-                const filtered = searchTerm ? allCountries.filter(c => c.toLowerCase().includes(searchTerm)) : allCountries;
-                renderCheckboxList(filtered);
-            });
-            const label = document.createElement('label');
-            label.textContent = country;
-            div.appendChild(cb);
-            div.appendChild(label);
-            checkboxListDiv.appendChild(div);
-        });
-    }
-
-    // Update chips above the search box
-    function updateSelectedChips() {
+    // Update chips above the button
+    function updateChipsDisplay() {
         selectedChipsDiv.innerHTML = '';
-        if (selectedCountries.length === 0) {
-            selectedChipsDiv.innerHTML = '<span style="color: #6c7e91; font-size: 0.85rem;">✈️ No country selected — check boxes to see plans</span>';
+        if (!selectedCountries.length) {
+            selectedChipsDiv.innerHTML = '<span style="color: #6c7e91; font-size: 0.85rem;">✈️ No countries selected — click "Select Countries" to choose</span>';
             return;
         }
         selectedCountries.forEach(country => {
@@ -357,18 +394,69 @@
             chip.querySelector('button').addEventListener('click', (e) => {
                 e.stopPropagation();
                 selectedCountries = selectedCountries.filter(c => c !== country);
-                updateSelectedChips();
-                // Re-render checkbox list to update checkmarks
-                const searchTerm = countrySearchInput.value.trim().toLowerCase();
-                const filtered = searchTerm ? allCountries.filter(c => c.toLowerCase().includes(searchTerm)) : allCountries;
-                renderCheckboxList(filtered);
-                filterProductsAndRender();
+                updateChipsDisplay();
+                // No automatic filtering – only when "Show plans" is clicked
             });
             selectedChipsDiv.appendChild(chip);
         });
     }
 
-    // Filter products (OR logic: any selected country)
+    // Render checkboxes inside the dropdown (respecting search filter)
+    function renderCheckboxList(filteredCountries) {
+        checkboxContainer.innerHTML = '';
+        (filteredCountries || allCountries).forEach(country => {
+            const isChecked = selectedCountries.includes(country);
+            const div = document.createElement('div');
+            div.className = 'checkbox-item';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = isChecked;
+            cb.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    if (!selectedCountries.includes(country)) selectedCountries.push(country);
+                } else {
+                    selectedCountries = selectedCountries.filter(c => c !== country);
+                }
+            });
+            const label = document.createElement('label');
+            label.textContent = country;
+            div.appendChild(cb);
+            div.appendChild(label);
+            checkboxContainer.appendChild(div);
+        });
+    }
+
+    // Open dropdown, populate with current selectedCountries
+    function openDropdown() {
+        // Update checkbox list based on current search term
+        const term = countryFilterInput.value.trim().toLowerCase();
+        const filtered = term ? allCountries.filter(c => c.toLowerCase().includes(term)) : allCountries;
+        renderCheckboxList(filtered);
+        dropdownOverlay.style.display = 'flex';
+    }
+
+    function closeDropdown() {
+        dropdownOverlay.style.display = 'none';
+        countryFilterInput.value = '';
+    }
+
+    // Apply (save current checkbox selections into selectedCountries and close)
+    function applySelection() {
+        // selectedCountries is already being updated via checkbox change events
+        // just refresh chips and close
+        updateChipsDisplay();
+        closeDropdown();
+        // Do NOT filter automatically – wait for "Show plans"
+    }
+
+    // Cancel: revert selectedCountries to the chips state (no change) and close
+    function cancelSelection() {
+        // Revert any checkbox changes: reset selectedCountries from chips
+        // But chips are the source of truth. So do nothing – just close
+        closeDropdown();
+    }
+
+    // Filter products based ONLY on selectedCountries (called when "Show plans" clicked)
     function filterProductsAndRender() {
         if (!allProducts.length) return;
         let filtered = [];
@@ -381,13 +469,12 @@
         }
         renderProductCards(filtered);
         if (selectedCountries.length === 0) {
-            statsPlaceholder.innerHTML = `📦 ${allProducts.length} total plans · 🌎 ${allCountries.length} countries available · (select countries to see matches)`;
+            statsPlaceholder.innerHTML = `📦 ${allProducts.length} total plans · 🌎 ${allCountries.length} countries available · (select some countries, then click "Show plans")`;
         } else {
             statsPlaceholder.innerHTML = `📦 ${allProducts.length} plans · ${filtered.length} match selected countries · 🌎 ${allCountries.length} destinations`;
         }
     }
 
-    // Display product cards
     function renderProductCards(products) {
         if (products.length === 0) {
             productListDiv.innerHTML = '<div class="no-results">🌎 No eSIM plans match the selected countries. Try selecting different countries.</div>';
@@ -414,8 +501,6 @@
             `;
         }
         productListDiv.innerHTML = html;
-
-        // Attach "More Details" handlers (same as before, using data from loaded product)
         document.querySelectorAll('.btn-more-details').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pkg = btn.getAttribute('data-package');
@@ -442,39 +527,22 @@
         });
     }
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
+    // Event handlers
+    openDropdownBtn.addEventListener('click', openDropdown);
+    closeDropdownBtn.addEventListener('click', closeDropdown);
+    cancelDropdownBtn.addEventListener('click', cancelSelection);
+    applyCountriesBtn.addEventListener('click', applySelection);
+    showPlansBtn.addEventListener('click', filterProductsAndRender);
 
-    // Event handlers for search input and buttons
-    countrySearchInput.addEventListener('input', (e) => {
+    countryFilterInput.addEventListener('input', (e) => {
         const term = e.target.value.trim().toLowerCase();
         const filtered = term ? allCountries.filter(c => c.toLowerCase().includes(term)) : allCountries;
         renderCheckboxList(filtered);
     });
 
-    selectAllBtn.addEventListener('click', () => {
-        selectedCountries = [...allCountries];
-        updateSelectedChips();
-        const searchTerm = countrySearchInput.value.trim().toLowerCase();
-        const filtered = searchTerm ? allCountries.filter(c => c.toLowerCase().includes(searchTerm)) : allCountries;
-        renderCheckboxList(filtered);
-        filterProductsAndRender();
-    });
-
-    clearAllBtn.addEventListener('click', () => {
-        selectedCountries = [];
-        updateSelectedChips();
-        const searchTerm = countrySearchInput.value.trim().toLowerCase();
-        const filtered = searchTerm ? allCountries.filter(c => c.toLowerCase().includes(searchTerm)) : allCountries;
-        renderCheckboxList(filtered);
-        filterProductsAndRender();
+    // Close dropdown if clicking outside the panel (optional)
+    dropdownOverlay.addEventListener('click', (e) => {
+        if (e.target === dropdownOverlay) closeDropdown();
     });
 
     // Initial load
