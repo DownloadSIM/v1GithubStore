@@ -6,22 +6,16 @@
     <title>eSIM Global Finder</title>
     <style>
         * { box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #f4f6fa;
-            margin: 0;
-            padding: 24px 20px;
-            color: #1a2634;
-        }
+        body { font-family: system-ui, sans-serif; background: #f4f6fa; margin: 0; padding: 24px 20px; color: #1a2634; }
         .container { max-width: 1300px; margin: 0 auto; }
-        h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.25rem; color: #0a2942; }
+        h1 { font-size: 1.8rem; font-weight: 700; color: #0a2942; margin-bottom: 0.25rem; }
         .subhead { color: #4a5b6e; margin-bottom: 2rem; border-left: 4px solid #2c7da0; padding-left: 1rem; }
         .search-section { background: white; border-radius: 28px; padding: 1.5rem; box-shadow: 0 5px 18px rgba(0,0,0,0.05); margin-bottom: 2rem; }
         .chips-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; min-height: 52px; align-items: center; }
         .chip { background: #eef2f9; color: #1f5e7a; padding: 6px 12px 6px 16px; border-radius: 40px; font-size: 0.85rem; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #dce5ed; }
         .chip button { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #5c6f87; }
         .input-wrapper { position: relative; width: 100%; }
-        #countryInput { width: 100%; padding: 14px 18px; font-size: 1rem; border: 1.5px solid #e2e8f0; border-radius: 60px; background: white; outline: none; }
+        #countryInput { width: 100%; padding: 14px 18px; font-size: 1rem; border: 1.5px solid #e2e8f0; border-radius: 60px; outline: none; }
         #countryInput:focus { border-color: #2c7da0; box-shadow: 0 0 0 3px rgba(44,125,160,0.2); }
         .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 20px; box-shadow: 0 12px 28px rgba(0,0,0,0.12); max-height: 280px; overflow-y: auto; z-index: 100; margin-top: 8px; border: 1px solid #eef2f5; display: none; }
         .autocomplete-list div { padding: 10px 18px; cursor: pointer; }
@@ -40,8 +34,9 @@
         .btn-more:hover { background: #f0f6fa; border-color: #2c7da0; }
         .more-details-content { display: none; margin-top: 1rem; border-top: 1px solid #edf2f7; padding-top: 1rem; font-size: 0.85rem; }
         .more-details-content.show { display: block; }
+        .full-spec-link { display: inline-block; margin-top: 10px; color: #2c7da0; text-decoration: underline; cursor: pointer; font-size: 0.8rem; }
         .no-results { text-align: center; padding: 3rem; background: white; border-radius: 32px; color: #5c6f87; }
-        .error-banner { background: #fff0f0; border-left: 4px solid #e53e3e; padding: 1rem; border-radius: 16px; margin-bottom: 1rem; color: #742a2a; word-break: break-word; }
+        .error-banner { background: #fff0f0; border-left: 4px solid #e53e3e; padding: 1rem; border-radius: 16px; margin-bottom: 1rem; color: #742a2a; }
         footer { margin-top: 3rem; text-align: center; font-size: 0.75rem; color: #7e8c9e; }
         @media (max-width: 700px) { body { padding: 16px; } .product-grid { grid-template-columns: 1fr; } }
     </style>
@@ -61,7 +56,7 @@
     </div>
 
     <div class="stats-line">
-        <div class="stats-badge" id="statsInfo">Loading products...</div>
+        <div class="stats-badge" id="statsInfo">Loading country list...</div>
         <button class="clear-btn" id="clearAllBtn" style="display: none;">Clear all countries ✕</button>
     </div>
 
@@ -70,15 +65,18 @@
 </div>
 
 <script>
-    // ============================================================
-    // YOUR SECURE PROXY URL (already deployed)
-    // ============================================================
-    const PROXY_URL = 'https://script.google.com/macros/s/AKfycbyRwtW2S0udHoHlVy69HkKTPt7JDaUydZwwQDRFc0lWxBmsf3U0B1IJajDWpBu6PNOl/exec';
-    const ACTION_LIST = '?action=getPackageList';
+    // ======================= CONFIGURATION =======================
+    // 1) Country list endpoint (from "API_Package_Code" sheet)
+    const COUNTRY_LIST_URL = 'https://script.google.com/macros/s/YOUR_COUNTRY_LIST_PROXY/exec?action=getCountryList';
+    // 2) Product summary endpoint (from "LISTING_API_Data" sheet)
+    const PRODUCT_LIST_URL = 'https://script.google.com/macros/s/YOUR_PRODUCT_LIST_PROXY/exec?action=getProductsByCountries';
+    // 3) Full spec API endpoint (uses packageCode)
+    const FULL_SPEC_URL = 'https://script.google.com/macros/s/YOUR_FULL_SPEC_PROXY/exec?action=getPackageDetails&packageCode=';
+    // =============================================================
 
-    let allProducts = [];
-    let uniqueCountries = [];
-    let selectedCountries = [];
+    let countryList = [];            // { code, name, type, codes[] (if region) }
+    let selectedCodes = [];         // array of selected country/region codes
+    let productCache = {};          // code -> product details from PRODUCT_LIST_URL
 
     const countryInput = document.getElementById('countryInput');
     const autocompleteDiv = document.getElementById('autocompleteList');
@@ -87,214 +85,253 @@
     const statsInfoSpan = document.getElementById('statsInfo');
     const clearAllBtn = document.getElementById('clearAllBtn');
 
-    // ------------------------------------------------------------
-    // 1) FETCH PRODUCTS FROM PROXY
-    // ------------------------------------------------------------
-    async function fetchAllPackages() {
+    // ---- 1. Load country list ----
+    async function loadCountryList() {
         try {
-            statsInfoSpan.innerText = 'Loading products...';
-            const url = PROXY_URL + ACTION_LIST;
-            console.log('Fetching from:', url);
-            const response = await fetch(url);
-            console.log('Response status:', response.status);
-            if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            const text = await response.text();
-            console.log('Raw response (first 200 chars):', text.substring(0, 200));
-            let result;
-            try {
-                result = JSON.parse(text);
-            } catch (e) {
-                throw new Error(`Invalid JSON. Response preview: ${text.substring(0, 150)}`);
-            }
-            if (!result.success || !result.data) {
-                throw new Error(result.error || 'Proxy returned success=false');
-            }
-
-            // *** CRITICAL FIX: The API returns an object with a 'packageList' array ***
-            const packages = result.data.packageList;
-            if (!packages || !Array.isArray(packages)) {
-                throw new Error('API response does not contain a packageList array');
-            }
-
-            allProducts = packages.map(pkg => ({
-                ...pkg,
-                // Convert locationName or location field to array
-                countriesList: (pkg.locationName || pkg.location || '').split(',').map(c => c.trim()).filter(c => c)
-            }));
-
-            // Build list of unique countries
-            const countrySet = new Set();
-            allProducts.forEach(prod => {
-                prod.countriesList.forEach(c => countrySet.add(c));
-            });
-            uniqueCountries = Array.from(countrySet).sort((a, b) => a.localeCompare(b));
-
-            statsInfoSpan.innerText = `📡 ${allProducts.length} plans · ${uniqueCountries.length} destinations`;
-            renderSelectedChips();
-            filterProductsAndRender();
-        } catch (err) {
-            console.error('Fetch error:', err);
-            statsInfoSpan.innerHTML = `❌ ${err.message}`;
-            productListDiv.innerHTML = `<div class="error-banner">⚠️ Could not load product data.<br><strong>Error details:</strong> ${escapeHtml(err.message)}<br><br>👉 Check that your proxy is deployed with "Anyone" access and the URL is correct.</div>`;
+            const resp = await fetch(COUNTRY_LIST_URL);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const json = await resp.json();
+            if (!json.success) throw new Error(json.error || 'Invalid country list response');
+            countryList = json.data;   // array of { code, name, type, codes? }
+            statsInfoSpan.innerText = `🌐 ${countryList.length} destinations loaded`;
+        } catch (e) {
+            statsInfoSpan.innerHTML = `❌ Country list failed: ${e.message}`;
+            productListDiv.innerHTML = `<div class="error-banner">Could not load country list. Check proxy.</div>`;
         }
     }
 
-    // ------------------------------------------------------------
-    // AUTOCOMPLETE
-    // ------------------------------------------------------------
+    // ---- 2. Autocomplete with region suggestions ----
     function updateAutocomplete(searchText) {
         const term = searchText.trim().toLowerCase();
-        if (!term) { autocompleteDiv.style.display = 'none'; return; }
-        const matches = uniqueCountries.filter(c => c.toLowerCase().includes(term) && !selectedCountries.includes(c)).slice(0, 12);
-        if (!matches.length) { autocompleteDiv.style.display = 'none'; return; }
+        if (!term || !countryList.length) { autocompleteDiv.style.display = 'none'; return; }
+
+        const suggestions = new Map(); // key: code, value: { code, name, type, matched }
+
+        countryList.forEach(item => {
+            const nameLower = item.name.toLowerCase();
+            const codeLower = item.code.toLowerCase();
+            if (nameLower.includes(term) || codeLower.includes(term)) {
+                // direct match on country/region name or code
+                if (!selectedCodes.includes(item.code)) {
+                    suggestions.set(item.code, { ...item, matchType: 'direct' });
+                }
+            }
+            // If this is a region, also show it when a country it contains matches the term
+            if (item.type === 'region' && Array.isArray(item.codes)) {
+                const containsMatch = item.codes.some(cc => {
+                    const country = countryList.find(c => c.code === cc && c.type === 'country');
+                    return country && (country.name.toLowerCase().includes(term) || country.code.toLowerCase().includes(term));
+                });
+                if (containsMatch && !selectedCodes.includes(item.code)) {
+                    // Show region as "Also available in..."
+                    suggestions.set(item.code, { ...item, matchType: 'region_suggestion' });
+                }
+            }
+        });
+
+        const filtered = Array.from(suggestions.values()).slice(0, 12);
+        if (!filtered.length) { autocompleteDiv.style.display = 'none'; return; }
+
         autocompleteDiv.innerHTML = '';
-        matches.forEach(match => {
+        filtered.forEach(item => {
             const div = document.createElement('div');
-            div.textContent = match;
-            div.addEventListener('click', () => { addCountry(match); countryInput.value = ''; autocompleteDiv.style.display = 'none'; });
+            if (item.matchType === 'region_suggestion') {
+                div.innerHTML = `<span>${escapeHtml(item.name)}</span> <span style="color:#888; font-size:0.7rem;">(region contains matching country)</span>`;
+            } else {
+                div.textContent = item.name + (item.type === 'region' ? ' (region)' : '');
+            }
+            div.addEventListener('click', () => {
+                addSelection(item.code, item.name);
+                countryInput.value = '';
+                autocompleteDiv.style.display = 'none';
+            });
             autocompleteDiv.appendChild(div);
         });
         autocompleteDiv.style.display = 'block';
     }
 
-    function addCountry(country) {
-        if (selectedCountries.includes(country)) return;
-        selectedCountries.push(country);
-        renderSelectedChips();
-        filterProductsAndRender();
-        countryInput.value = '';
-        autocompleteDiv.style.display = 'none';
+    // ---- 3. Selection management ----
+    function addSelection(code, displayName) {
+        if (selectedCodes.includes(code)) return;
+        selectedCodes.push(code);
+        renderChips();
+        loadProducts();
         clearAllBtn.style.display = 'inline-block';
     }
 
-    function removeCountry(country) {
-        selectedCountries = selectedCountries.filter(c => c !== country);
-        renderSelectedChips();
-        filterProductsAndRender();
-        if (!selectedCountries.length) clearAllBtn.style.display = 'none';
+    function removeSelection(code) {
+        selectedCodes = selectedCodes.filter(c => c !== code);
+        renderChips();
+        if (!selectedCodes.length) clearAllBtn.style.display = 'none';
+        loadProducts();
     }
 
-    function clearAllCountries() {
-        selectedCountries = [];
-        renderSelectedChips();
-        filterProductsAndRender();
+    function clearAllSelections() {
+        selectedCodes = [];
+        renderChips();
+        loadProducts();
         clearAllBtn.style.display = 'none';
     }
 
-    function renderSelectedChips() {
+    function renderChips() {
         chipsContainer.innerHTML = '';
-        if (!selectedCountries.length) {
+        if (!selectedCodes.length) {
             chipsContainer.innerHTML = '<span style="color: #6c7e91; font-size: 0.85rem;">✈️ No country selected — search & click to add</span>';
             return;
         }
-        selectedCountries.forEach(country => {
+        selectedCodes.forEach(code => {
+            const item = countryList.find(c => c.code === code);
+            const label = item ? (item.name + (item.type === 'region' ? ' (region)' : '')) : code;
             const chip = document.createElement('div');
             chip.className = 'chip';
-            chip.innerHTML = `${country} <button data-country="${country}">✕</button>`;
-            chip.querySelector('button').addEventListener('click', (e) => { e.stopPropagation(); removeCountry(country); });
+            chip.innerHTML = `${escapeHtml(label)} <button data-code="${code}">✕</button>`;
+            chip.querySelector('button').addEventListener('click', (e) => { e.stopPropagation(); removeSelection(code); });
             chipsContainer.appendChild(chip);
         });
     }
 
-    function filterProductsAndRender() {
-        if (!allProducts.length) return;
-        let filtered = [];
-        if (selectedCountries.length) {
-            filtered = allProducts.filter(p => p.countriesList.some(c => selectedCountries.includes(c)));
-        }
-        renderProductCards(filtered);
-        if (selectedCountries.length === 0) {
-            statsInfoSpan.innerText = `📡 ${allProducts.length} plans · ${uniqueCountries.length} destinations · (select a country)`;
-        } else {
-            statsInfoSpan.innerText = `📡 ${allProducts.length} plans · ${filtered.length} matches · ${uniqueCountries.length} destinations`;
-        }
-    }
-
-    // ------------------------------------------------------------
-    // MORE DETAILS (calls proxy with getPackageDetails)
-    // ------------------------------------------------------------
-    async function fetchAndShowDetails(packageCode, containerId) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        if (container.innerHTML.trim() !== '') {
-            container.classList.toggle('show');
+    // ---- 4. Load product summaries for selected codes ----
+    async function loadProducts() {
+        if (!selectedCodes.length) {
+            productListDiv.innerHTML = '';
+            statsInfoSpan.innerText = `🌐 ${countryList.length} destinations · select a country`;
             return;
         }
-        container.innerHTML = '<div>📡 Loading live details...</div>';
-        container.classList.add('show');
+        statsInfoSpan.innerText = 'Loading products...';
+        productListDiv.innerHTML = '';
+        productCache = {};
         try {
-            const url = `${PROXY_URL}?action=getPackageDetails&packageCode=${encodeURIComponent(packageCode)}`;
+            // Build query: ?codes=ES,EU-42,JP (or POST if needed)
+            const codesParam = selectedCodes.map(encodeURIComponent).join(',');
+            const url = `${PRODUCT_LIST_URL}&codes=${codesParam}`;
             const resp = await fetch(url);
-            const result = await resp.json();
-            if (!result.success || !result.data) throw new Error(result.error || 'No data');
-            const d = result.data;
-            let html = '<div style="margin-top:0.5rem;">';
-            if (d.speed) html += `<p><strong>⚡ Speed:</strong> ${escapeHtml(d.speed)}</p>`;
-            if (d.fupPolicy) html += `<p><strong>📜 FUP:</strong> ${escapeHtml(d.fupPolicy)}</p>`;
-            if (d.supportTopUpType) html += `<p><strong>🔁 Top‑up:</strong> ${escapeHtml(d.supportTopUpType)}</p>`;
-            if (d.activeType) html += `<p><strong>🔌 Activation:</strong> ${escapeHtml(d.activeType)}</p>`;
-            if (d.ipExport) html += `<p><strong>📍 IP Route:</strong> ${escapeHtml(d.ipExport)}</p>`;
-            if (!d.speed && !d.fupPolicy && !d.supportTopUpType) html += '<p>No extra info for this plan.</p>';
-            html += '</div>';
-            container.innerHTML = html;
-        } catch (err) {
-            container.innerHTML = `<div class="error-more">❌ Failed: ${escapeHtml(err.message)}</div>`;
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            const json = await resp.json();
+            if (!json.success) throw new Error(json.error || 'No products');
+            const products = json.data; // array of product objects (summary)
+            products.forEach(p => { productCache[p.packageCode] = p; });
+            renderProductCards(products);
+            statsInfoSpan.innerText = `${products.length} plans matched · ${selectedCodes.length} selection(s)`;
+        } catch (e) {
+            statsInfoSpan.innerHTML = `❌ ${e.message}`;
+            productListDiv.innerHTML = `<div class="error-banner">⚠️ Could not load products.<br>Error: ${escapeHtml(e.message)}</div>`;
         }
     }
 
+    // ---- 5. Render product cards ----
     function renderProductCards(products) {
         if (!products.length) {
-            productListDiv.innerHTML = `<div class="no-results">🌎 No eSIM plans match the selected countries. Try adding more destinations.</div>`;
+            productListDiv.innerHTML = `<div class="no-results">🌎 No eSIM plans match selected countries.</div>`;
             return;
         }
         let html = '';
-        for (const prod of products) {
-            let volume = prod.volume ? `${prod.volume}${prod.volumeUnit ? ' ' + prod.volumeUnit : ' GB'}` : '—';
-            let duration = prod.duration ? `${prod.duration} ${prod.durationUnit || 'days'}` : '—';
-            let priceDisplay = prod.retailPrice ? (prod.currencyCode ? `${prod.currencyCode} ${prod.retailPrice}` : `$${prod.retailPrice}`) : (prod.price ? `$${prod.price}` : 'N/A');
-            const safeId = `details-${Date.now()}-${Math.random()}-${prod.packageCode}`.replace(/[^a-zA-Z0-9-]/g, '');
+        for (const p of products) {
+            const volume = p.volume ? `${p.volume}${p.volumeUnit || ' GB'}` : '—';
+            const duration = p.duration ? `${p.duration} ${p.durationUnit || 'days'}` : '—';
+            const price = p.retailPrice ? `${p.currencyCode || '$'} ${p.retailPrice}` : 'N/A';
+            const safeId = `details-${p.packageCode}`;
             html += `
                 <div class="product-card">
-                    <div class="product-name">${escapeHtml(prod.name || prod.slug || 'eSIM Plan')}</div>
+                    <div class="product-name">${escapeHtml(p.name || p.slug || 'Plan')}</div>
                     <div class="product-details">
                         <span class="detail-chip">📶 ${escapeHtml(volume)}</span>
                         <span class="detail-chip">⏱️ ${escapeHtml(duration)}</span>
                     </div>
-                    <div class="price">${escapeHtml(priceDisplay)}</div>
-                    <div style="font-size:0.7rem; color:#6c7e91;">SKU: ${escapeHtml(prod.packageCode || 'N/A')}</div>
-                    <button class="btn-more" data-package="${escapeHtml(prod.packageCode)}" data-target="${safeId}">🔍 More Details</button>
+                    <div class="price">${escapeHtml(price)}</div>
+                    <div style="font-size:0.7rem; color:#6c7e91;">SKU: ${escapeHtml(p.packageCode || '')}</div>
+                    <button class="btn-more" data-package="${p.packageCode}" data-target="${safeId}">🔍 More Details</button>
                     <div id="${safeId}" class="more-details-content"></div>
                 </div>
             `;
         }
         productListDiv.innerHTML = html;
+
         document.querySelectorAll('.btn-more').forEach(btn => {
             const pkg = btn.getAttribute('data-package');
-            const target = btn.getAttribute('data-target');
-            btn.addEventListener('click', () => fetchAndShowDetails(pkg, target));
+            const targetId = btn.getAttribute('data-target');
+            btn.addEventListener('click', () => showMoreDetails(pkg, targetId));
         });
+    }
+
+    // ---- 6. Expand card with summary data (no API call) ----
+    function showMoreDetails(packageCode, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        // Toggle if already filled
+        if (container.innerHTML.trim() !== '') {
+            container.classList.toggle('show');
+            return;
+        }
+        const prod = productCache[packageCode];
+        if (!prod) {
+            container.innerHTML = '<div class="error-more">Product data not available.</div>';
+            container.classList.add('show');
+            return;
+        }
+        let html = '<div>';
+        if (prod.speed) html += `<p><strong>⚡ Speed:</strong> ${escapeHtml(prod.speed)}</p>`;
+        if (prod.fupPolicy) html += `<p><strong>📜 FUP:</strong> ${escapeHtml(prod.fupPolicy)}</p>`;
+        if (prod.supportTopUpType) html += `<p><strong>🔁 Top‑up:</strong> ${escapeHtml(prod.supportTopUpType)}</p>`;
+        if (prod.activeType) html += `<p><strong>🔌 Activation:</strong> ${escapeHtml(prod.activeType)}</p>`;
+        if (prod.ipExport) html += `<p><strong>📍 IP Route:</strong> ${escapeHtml(prod.ipExport)}</p>`;
+        html += '</div>';
+        // Full spec link (only shown here, uses API)
+        html += `<span class="full-spec-link" data-package="${packageCode}">📋 View full specification</span>`;
+        container.innerHTML = html;
+        container.classList.add('show');
+
+        // Attach event for full spec link
+        container.querySelector('.full-spec-link').addEventListener('click', (e) => {
+            e.stopPropagation();
+            loadFullSpec(packageCode, container);
+        });
+    }
+
+    // ---- 7. Load full spec via API (on demand) ----
+    async function loadFullSpec(packageCode, container) {
+        const fullSpecDiv = document.createElement('div');
+        fullSpecDiv.innerHTML = '⏳ Loading full spec...';
+        container.appendChild(fullSpecDiv);
+        try {
+            const url = `${FULL_SPEC_URL}${encodeURIComponent(packageCode)}`;
+            const resp = await fetch(url);
+            const json = await resp.json();
+            if (!json.success) throw new Error(json.error || 'Failed');
+            const d = json.data;
+            let specHtml = '<div style="margin-top:0.5rem; border-top:1px solid #eee; padding-top:0.5rem;">';
+            specHtml += `<p><strong>Package ID:</strong> ${escapeHtml(d.packageId || packageCode)}</p>`;
+            specHtml += `<p><strong>Speed:</strong> ${escapeHtml(d.speed || 'N/A')}</p>`;
+            specHtml += `<p><strong>FUP Policy:</strong> ${escapeHtml(d.fupPolicy || 'N/A')}</p>`;
+            specHtml += `<p><strong>Activation:</strong> ${escapeHtml(d.activeType || 'N/A')}</p>`;
+            specHtml += `<p><strong>IP Export:</strong> ${escapeHtml(d.ipExport || 'N/A')}</p>`;
+            specHtml += `<p><strong>Supported Top‑up:</strong> ${escapeHtml(d.supportTopUpType || 'N/A')}</p>`;
+            if (d.locationNetworkList && Array.isArray(d.locationNetworkList)) {
+                specHtml += '<p><strong>Networks:</strong> ';
+                d.locationNetworkList.forEach(loc => {
+                    specHtml += `${escapeHtml(loc.locationName)}: ${loc.operatorList.map(o => o.operatorName).join(', ')}; `;
+                });
+                specHtml += '</p>';
+            }
+            specHtml += '</div>';
+            fullSpecDiv.innerHTML = specHtml;
+        } catch (err) {
+            fullSpecDiv.innerHTML = `<div class="error-more">❌ Full spec failed: ${escapeHtml(err.message)}</div>`;
+        }
     }
 
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' })[m]);
     }
 
-    // ------------------------------------------------------------
-    // EVENT LISTENERS
-    // ------------------------------------------------------------
+    // ---- Event listeners ----
     countryInput.addEventListener('input', (e) => updateAutocomplete(e.target.value));
     countryInput.addEventListener('focus', () => { if (countryInput.value.trim()) updateAutocomplete(countryInput.value); });
     document.addEventListener('click', (e) => { if (!autocompleteDiv.contains(e.target) && e.target !== countryInput) autocompleteDiv.style.display = 'none'; });
-    clearAllBtn.addEventListener('click', clearAllCountries);
+    clearAllBtn.addEventListener('click', clearAllSelections);
 
-    // START
-    fetchAllPackages();
+    // ---- Start ----
+    loadCountryList();
 </script>
 </body>
 </html>
