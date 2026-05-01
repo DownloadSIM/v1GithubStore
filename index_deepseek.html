@@ -35,6 +35,7 @@
         .more-details-content { display: none; margin-top: 1rem; border-top: 1px solid #edf2f7; padding-top: 1rem; font-size: 0.85rem; }
         .more-details-content.show { display: block; }
         .full-spec-link { display: inline-block; margin-top: 10px; color: #2c7da0; text-decoration: underline; cursor: pointer; font-size: 0.8rem; }
+        .error-more { color: #742a2a; background: #fff0f0; padding: 0.5rem; border-radius: 8px; font-size: 0.85rem; }
         .no-results { text-align: center; padding: 3rem; background: white; border-radius: 32px; color: #5c6f87; }
         .error-banner { background: #fff0f0; border-left: 4px solid #e53e3e; padding: 1rem; border-radius: 16px; margin-bottom: 1rem; color: #742a2a; }
         footer { margin-top: 3rem; text-align: center; font-size: 0.75rem; color: #7e8c9e; }
@@ -68,9 +69,10 @@
     // ======================= CONFIGURATION =======================
     // 1) Country list endpoint (from "API_Package_Code" sheet)
     const COUNTRY_LIST_URL = 'https://script.google.com/macros/s/YOUR_COUNTRY_LIST_PROXY/exec?action=getCountryList';
-    // 2) Product summary endpoint (from "LISTING_API_Data" sheet)
-    const PRODUCT_LIST_URL = 'https://script.google.com/macros/s/YOUR_PRODUCT_LIST_PROXY/exec?action=getProductsByCountries';
-    // 3) Full spec API endpoint (uses packageCode)
+    // 2) Product summary endpoint – use the proxy script you shared.
+    //    Replace with your deployed web app URL for that script.
+    const PRODUCT_LIST_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYED_PROXY_ID/exec?action=getProductsByCountries';
+    // 3) Full spec API endpoint (direct eSIMAccess API or a proxy that uses packageCode)
     const FULL_SPEC_URL = 'https://script.google.com/macros/s/YOUR_FULL_SPEC_PROXY/exec?action=getPackageDetails&packageCode=';
     // =============================================================
 
@@ -111,7 +113,6 @@
             const nameLower = item.name.toLowerCase();
             const codeLower = item.code.toLowerCase();
             if (nameLower.includes(term) || codeLower.includes(term)) {
-                // direct match on country/region name or code
                 if (!selectedCodes.includes(item.code)) {
                     suggestions.set(item.code, { ...item, matchType: 'direct' });
                 }
@@ -123,7 +124,6 @@
                     return country && (country.name.toLowerCase().includes(term) || country.code.toLowerCase().includes(term));
                 });
                 if (containsMatch && !selectedCodes.includes(item.code)) {
-                    // Show region as "Also available in..."
                     suggestions.set(item.code, { ...item, matchType: 'region_suggestion' });
                 }
             }
@@ -141,7 +141,7 @@
                 div.textContent = item.name + (item.type === 'region' ? ' (region)' : '');
             }
             div.addEventListener('click', () => {
-                addSelection(item.code, item.name);
+                addSelection(item.code);
                 countryInput.value = '';
                 autocompleteDiv.style.display = 'none';
             });
@@ -151,7 +151,7 @@
     }
 
     // ---- 3. Selection management ----
-    function addSelection(code, displayName) {
+    function addSelection(code) {
         if (selectedCodes.includes(code)) return;
         selectedCodes.push(code);
         renderChips();
@@ -190,7 +190,7 @@
         });
     }
 
-    // ---- 4. Load product summaries for selected codes ----
+    // ---- 4. Load product summaries using YOUR proxy script ----
     async function loadProducts() {
         if (!selectedCodes.length) {
             productListDiv.innerHTML = '';
@@ -201,14 +201,13 @@
         productListDiv.innerHTML = '';
         productCache = {};
         try {
-            // Build query: ?codes=ES,EU-42,JP (or POST if needed)
             const codesParam = selectedCodes.map(encodeURIComponent).join(',');
             const url = `${PRODUCT_LIST_URL}&codes=${codesParam}`;
             const resp = await fetch(url);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const json = await resp.json();
             if (!json.success) throw new Error(json.error || 'No products');
-            const products = json.data; // array of product objects (summary)
+            const products = json.data; // array of product objects from LISTING_API_Data
             products.forEach(p => { productCache[p.packageCode] = p; });
             renderProductCards(products);
             statsInfoSpan.innerText = `${products.length} plans matched · ${selectedCodes.length} selection(s)`;
@@ -253,11 +252,10 @@
         });
     }
 
-    // ---- 6. Expand card with summary data (no API call) ----
+    // ---- 6. Expand card with summary data (from product list cache) ----
     function showMoreDetails(packageCode, containerId) {
         const container = document.getElementById(containerId);
         if (!container) return;
-        // Toggle if already filled
         if (container.innerHTML.trim() !== '') {
             container.classList.toggle('show');
             return;
@@ -275,12 +273,10 @@
         if (prod.activeType) html += `<p><strong>🔌 Activation:</strong> ${escapeHtml(prod.activeType)}</p>`;
         if (prod.ipExport) html += `<p><strong>📍 IP Route:</strong> ${escapeHtml(prod.ipExport)}</p>`;
         html += '</div>';
-        // Full spec link (only shown here, uses API)
         html += `<span class="full-spec-link" data-package="${packageCode}">📋 View full specification</span>`;
         container.innerHTML = html;
         container.classList.add('show');
 
-        // Attach event for full spec link
         container.querySelector('.full-spec-link').addEventListener('click', (e) => {
             e.stopPropagation();
             loadFullSpec(packageCode, container);
@@ -308,7 +304,13 @@
             if (d.locationNetworkList && Array.isArray(d.locationNetworkList)) {
                 specHtml += '<p><strong>Networks:</strong> ';
                 d.locationNetworkList.forEach(loc => {
-                    specHtml += `${escapeHtml(loc.locationName)}: ${loc.operatorList.map(o => o.operatorName).join(', ')}; `;
+                    specHtml += `${escapeHtml(loc.locationName)}: `;
+                    if (loc.operatorList && Array.isArray(loc.operatorList)) {
+                        specHtml += loc.operatorList.map(o => o.operatorName).join(', ');
+                    } else {
+                        specHtml += 'N/A';
+                    }
+                    specHtml += '; ';
                 });
                 specHtml += '</p>';
             }
