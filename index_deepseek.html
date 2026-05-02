@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eSIM Product Finder – Multi‑Country (Dropdown)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>eSIM Product Finder – Multi‑Country</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -211,14 +211,25 @@
             box-shadow: none;
         }
         .btn-more-details:hover { background: #eef2f5; transform: none; }
+        
+        /* Fix for long country codes and operator lists */
         .more-details-content {
             margin-top: 1rem;
             padding-top: 1rem;
             border-top: 1px dashed #e9edf2;
             font-size: 0.85rem;
             display: none;
+            max-height: 300px;
+            overflow-y: auto;
         }
         .more-details-content.show { display: block; }
+        .more-details-content p {
+            word-break: break-word;
+            white-space: normal;
+            overflow-wrap: break-word;
+            margin: 0.5rem 0;
+        }
+        
         .no-results { text-align: center; padding: 3rem; background: white; border-radius: 24px; color: #5f6c80; }
         footer { margin-top: 3rem; text-align: center; font-size: 0.8rem; color: #7e8c9e; }
         @media (max-width: 700px) {
@@ -234,7 +245,6 @@
 
     <!-- Country selection card -->
     <div class="selector-card">
-        <!-- Selected countries as chips -->
         <div id="selectedChips" class="selected-chips"></div>
         <div class="action-bar">
             <button id="openDropdownBtn" class="open-dropdown-btn">✈️ Select Countries</button>
@@ -242,7 +252,7 @@
         </div>
     </div>
 
-    <!-- Dropdown overlay (hidden by default) -->
+    <!-- Dropdown overlay -->
     <div id="dropdownOverlay" class="dropdown-overlay">
         <div class="dropdown-panel">
             <div class="dropdown-header">
@@ -275,9 +285,8 @@
 
     let allProducts = [];
     let allCountries = [];
-    let selectedCountries = [];      // currently selected (will be applied only on "Show plans")
+    let selectedCountries = [];
 
-    // DOM elements
     const selectedChipsDiv = document.getElementById('selectedChips');
     const openDropdownBtn = document.getElementById('openDropdownBtn');
     const showPlansBtn = document.getElementById('showPlansBtn');
@@ -290,7 +299,6 @@
     const statsPlaceholder = document.getElementById('statsPlaceholder');
     const productListDiv = document.getElementById('productList');
 
-    // Helper: parse CSV line
     function parseCSVLine(line) {
         const result = [];
         let inQuote = false;
@@ -309,7 +317,6 @@
     function stripQuotes(str) { return str ? str.replace(/^"|"$/g, '') : ''; }
     function escapeHtml(str) { return str ? str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')) : ''; }
 
-    // Load data from Google Sheets
     async function loadData() {
         try {
             statsPlaceholder.innerText = 'Loading product catalog...';
@@ -380,7 +387,6 @@
         }
     }
 
-    // Update chips above the button
     function updateChipsDisplay() {
         selectedChipsDiv.innerHTML = '';
         if (!selectedCountries.length) {
@@ -395,13 +401,11 @@
                 e.stopPropagation();
                 selectedCountries = selectedCountries.filter(c => c !== country);
                 updateChipsDisplay();
-                // No automatic filtering – only when "Show plans" is clicked
             });
             selectedChipsDiv.appendChild(chip);
         });
     }
 
-    // Render checkboxes inside the dropdown (respecting search filter)
     function renderCheckboxList(filteredCountries) {
         checkboxContainer.innerHTML = '';
         (filteredCountries || allCountries).forEach(country => {
@@ -426,9 +430,7 @@
         });
     }
 
-    // Open dropdown, populate with current selectedCountries
     function openDropdown() {
-        // Update checkbox list based on current search term
         const term = countryFilterInput.value.trim().toLowerCase();
         const filtered = term ? allCountries.filter(c => c.toLowerCase().includes(term)) : allCountries;
         renderCheckboxList(filtered);
@@ -440,23 +442,15 @@
         countryFilterInput.value = '';
     }
 
-    // Apply (save current checkbox selections into selectedCountries and close)
     function applySelection() {
-        // selectedCountries is already being updated via checkbox change events
-        // just refresh chips and close
         updateChipsDisplay();
         closeDropdown();
-        // Do NOT filter automatically – wait for "Show plans"
     }
 
-    // Cancel: revert selectedCountries to the chips state (no change) and close
     function cancelSelection() {
-        // Revert any checkbox changes: reset selectedCountries from chips
-        // But chips are the source of truth. So do nothing – just close
         closeDropdown();
     }
 
-    // Filter products based ONLY on selectedCountries (called when "Show plans" clicked)
     function filterProductsAndRender() {
         if (!allProducts.length) return;
         let filtered = [];
@@ -514,7 +508,7 @@
                     if (product.supportTopUp) detailsHtml += `<p><strong>Top-up:</strong> ${escapeHtml(product.supportTopUp)}</p>`;
                     if (product.activeType) detailsHtml += `<p><strong>Activation:</strong> ${escapeHtml(product.activeType)}</p>`;
                     if (product.ipExport) detailsHtml += `<p><strong>IP Route:</strong> ${escapeHtml(product.ipExport)}</p>`;
-                    if (product.operators) detailsHtml += `<p><strong>Operators:</strong> ${escapeHtml(product.operators.substring(0, 150))}${product.operators.length > 150 ? '…' : ''}</p>`;
+                    if (product.operators) detailsHtml += `<p><strong>Operators:</strong> ${escapeHtml(product.operators)}</p>`;
                     if (product.countryCodes) detailsHtml += `<p><strong>Country Codes:</strong> ${escapeHtml(product.countryCodes)}</p>`;
                     if (!product.smsStatus && !product.supportTopUp && !product.activeType && !product.operators) {
                         detailsHtml += '<p>No additional details available for this plan.</p>';
@@ -527,25 +521,21 @@
         });
     }
 
-    // Event handlers
+    // Event listeners
     openDropdownBtn.addEventListener('click', openDropdown);
     closeDropdownBtn.addEventListener('click', closeDropdown);
     cancelDropdownBtn.addEventListener('click', cancelSelection);
     applyCountriesBtn.addEventListener('click', applySelection);
     showPlansBtn.addEventListener('click', filterProductsAndRender);
-
     countryFilterInput.addEventListener('input', (e) => {
         const term = e.target.value.trim().toLowerCase();
         const filtered = term ? allCountries.filter(c => c.toLowerCase().includes(term)) : allCountries;
         renderCheckboxList(filtered);
     });
-
-    // Close dropdown if clicking outside the panel (optional)
     dropdownOverlay.addEventListener('click', (e) => {
         if (e.target === dropdownOverlay) closeDropdown();
     });
 
-    // Initial load
     loadData();
 </script>
 </body>
