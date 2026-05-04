@@ -17,6 +17,7 @@
         h1 { font-size: 1.8rem; margin-bottom: 0.25rem; color: #0f3b5c; }
         .subtitle { color: #4a627a; margin-bottom: 2rem; border-left: 4px solid #2c7da0; padding-left: 1rem; }
 
+        /* Country selector */
         .selector-card {
             background: white;
             border-radius: 20px;
@@ -83,6 +84,7 @@
         }
         .show-plans-btn:hover, .open-dropdown-btn:hover { opacity: 0.9; }
 
+        /* Dropdown */
         .dropdown-overlay {
             display: none;
             position: fixed;
@@ -168,14 +170,37 @@
             background: #eef2f5;
         }
 
+        /* Compare and stats */
+        .compare-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 1rem;
+        }
         .stats {
             background: #eef2f5;
             border-radius: 16px;
             padding: 0.75rem 1.5rem;
-            margin-bottom: 1.5rem;
             display: inline-block;
             font-size: 0.9rem;
         }
+        .compare-btn {
+            background: #2c7da0;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .compare-btn:disabled {
+            background: #b0c4d8;
+            cursor: not-allowed;
+        }
+
+        /* Product grid */
         .product-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -188,6 +213,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             border: 1px solid #e9edf2;
             transition: box-shadow 0.2s;
+            position: relative;
         }
         .product-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
         .product-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; color: #0f3b5c; }
@@ -195,20 +221,41 @@
         .detail-item { background: #f1f5f9; padding: 0.25rem 0.75rem; border-radius: 30px; }
         .price { font-size: 1.6rem; font-weight: 800; color: #2c7da0; margin: 0.75rem 0 0.25rem; }
         .package-code { font-family: monospace; font-size: 0.75rem; color: #5f6c80; background: #f1f5f9; padding: 0.2rem 0.5rem; border-radius: 8px; display: inline-block; }
-        .btn-more-details {
+        
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 1rem;
+            align-items: center;
+        }
+        .compare-checkbox {
+            margin-right: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+        }
+        .btn-buy, .btn-more-details {
             background: none;
             border: 1px solid #2c7da0;
             color: #2c7da0;
-            padding: 8px 16px;
-            font-size: 0.85rem;
+            padding: 6px 12px;
+            font-size: 0.8rem;
             font-weight: 600;
             border-radius: 30px;
             cursor: pointer;
-            margin-top: 1rem;
-            width: 100%;
-            box-shadow: none;
+            transition: 0.2s;
         }
-        .btn-more-details:hover { background: #eef2f5; transform: none; }
+        .btn-buy {
+            background: #2c7da0;
+            color: white;
+        }
+        .btn-buy:hover {
+            background: #1f5e7a;
+        }
+        .btn-more-details:hover {
+            background: #eef2f5;
+        }
         
         .more-details-content {
             margin-top: 1rem;
@@ -227,11 +274,61 @@
             margin: 0.5rem 0;
         }
         
+        /* Compare modal */
+        .compare-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .compare-modal-content {
+            background: white;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 85vh;
+            border-radius: 28px;
+            overflow-y: auto;
+            padding: 1.5rem;
+            position: relative;
+        }
+        .compare-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #eef2f5;
+        }
+        .close-compare {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+        }
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .compare-table th, .compare-table td {
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            vertical-align: top;
+            text-align: left;
+        }
+        .compare-table th {
+            background: #f0f4f9;
+            width: 150px;
+        }
         .no-results { text-align: center; padding: 3rem; background: white; border-radius: 24px; color: #5f6c80; }
         footer { margin-top: 3rem; text-align: center; font-size: 0.8rem; color: #7e8c9e; }
         @media (max-width: 700px) {
             .action-bar { flex-direction: column; align-items: stretch; }
             button { width: 100%; }
+            .compare-bar { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
@@ -265,11 +362,24 @@
         </div>
     </div>
 
-    <div id="resultsArea">
+    <div class="compare-bar">
         <div class="stats" id="statsPlaceholder">Loading product catalog...</div>
-        <div id="productList" class="product-grid"></div>
+        <button id="compareBtn" class="compare-btn" disabled>Compare Selected (0)</button>
     </div>
+
+    <div id="productList" class="product-grid"></div>
     <footer>DownloadSIM™ | Since 2025</footer>
+</div>
+
+<!-- Compare Modal -->
+<div id="compareModal" class="compare-modal">
+    <div class="compare-modal-content">
+        <div class="compare-modal-header">
+            <h2>Compare eSIM Plans</h2>
+            <button id="closeCompareBtn" class="close-compare">&times;</button>
+        </div>
+        <div id="compareTableContainer"></div>
+    </div>
 </div>
 
 <script>
@@ -280,7 +390,9 @@
     let allProducts = [];
     let allCountries = [];
     let selectedCountries = [];
+    let selectedProductCodes = new Set(); // for compare
 
+    // DOM elements
     const selectedChipsDiv = document.getElementById('selectedChips');
     const openDropdownBtn = document.getElementById('openDropdownBtn');
     const showPlansBtn = document.getElementById('showPlansBtn');
@@ -292,6 +404,9 @@
     const checkboxContainer = document.getElementById('checkboxContainer');
     const statsPlaceholder = document.getElementById('statsPlaceholder');
     const productListDiv = document.getElementById('productList');
+    const compareBtn = document.getElementById('compareBtn');
+    const compareModal = document.getElementById('compareModal');
+    const closeCompareBtn = document.getElementById('closeCompareBtn');
 
     function parseCSVLine(line) {
         const result = [];
@@ -407,11 +522,18 @@
                 e.stopPropagation();
                 selectedCountries = selectedCountries.filter(c => c !== country);
                 updateChipsDisplay();
-                productListDiv.innerHTML = '<div class="no-results">🌎 Click "Show plans" to update results.</div>';
+                clearProductListAndResetCompare();
                 updateStatsMessage(0);
             });
             selectedChipsDiv.appendChild(chip);
         });
+    }
+
+    function clearProductListAndResetCompare() {
+        productListDiv.innerHTML = '<div class="no-results">🌎 Click "Show plans" to update results.</div>';
+        selectedProductCodes.clear();
+        compareBtn.disabled = true;
+        compareBtn.textContent = 'Compare Selected (0)';
     }
 
     function renderCheckboxList(filteredCountries) {
@@ -453,15 +575,13 @@
     function applySelection() {
         updateChipsDisplay();
         closeDropdown();
-        productListDiv.innerHTML = '<div class="no-results">🌎 Click "Show plans" to update results.</div>';
+        clearProductListAndResetCompare();
         updateStatsMessage(0);
     }
 
-    function cancelSelection() {
-        closeDropdown();
-    }
+    function cancelSelection() { closeDropdown(); }
 
-    // ========== FIXED: AND logic – product must include ALL selected countries ==========
+    // AND filter: product must include ALL selected countries
     function filterProductsAndRender() {
         if (!allProducts.length) return;
         let filtered = [];
@@ -474,6 +594,10 @@
         }
         renderProductCards(filtered);
         updateStatsMessage(filtered.length);
+        // Reset compare selection
+        selectedProductCodes.clear();
+        compareBtn.disabled = true;
+        compareBtn.textContent = 'Compare Selected (0)';
     }
 
     function renderProductCards(products) {
@@ -487,6 +611,7 @@
             if (!isNaN(parseFloat(volumeDisplay)) && isFinite(volumeDisplay)) volumeDisplay = `${volumeDisplay} GB`;
             let durationDisplay = prod.duration;
             if (durationDisplay !== '—' && !isNaN(parseInt(durationDisplay))) durationDisplay = `${durationDisplay} days`;
+            const isChecked = selectedProductCodes.has(prod.packageCode);
             html += `
                 <div class="product-card" data-package="${escapeHtml(prod.packageCode)}">
                     <div class="product-name">${escapeHtml(prod.name)}</div>
@@ -495,13 +620,58 @@
                         <span class="detail-item">⏱️ ${escapeHtml(durationDisplay)}</span>
                     </div>
                     <div class="price">${escapeHtml(prod.price)}</div>
-                    ${prod.packageCode ? `<div class="package-code">📦 ${escapeHtml(prod.packageCode)}</div>` : ''}
-                    <button class="btn-more-details" data-package="${escapeHtml(prod.packageCode)}">More Details</button>
+                    <div class="package-code">📦 ${escapeHtml(prod.packageCode)}</div>
+                    <div class="card-actions">
+                        <label class="compare-checkbox">
+                            <input type="checkbox" class="compare-select" data-code="${escapeHtml(prod.packageCode)}" ${isChecked ? 'checked' : ''}> Compare
+                        </label>
+                            <button class="btn-buy" data-package="${escapeHtml(prod.packageCode)}" 
+                                data-name="${escapeHtml(prod.name)}" 
+                                data-price="${escapeHtml(prod.price.replace('$', ''))}">
+                                Buy Now
+                            </button>
+                            <button class="btn-more-details" data-package="${escapeHtml(prod.packageCode)}">More Details</button>
+                    </div>
                     <div class="more-details-content" id="details-${escapeHtml(prod.packageCode)}"></div>
                 </div>
             `;
         }
         productListDiv.innerHTML = html;
+
+        // Attach event listeners after rendering
+        document.querySelectorAll('.compare-select').forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const code = cb.getAttribute('data-code');
+                if (cb.checked) {
+                    selectedProductCodes.add(code);
+                } else {
+                    selectedProductCodes.delete(code);
+                }
+                const count = selectedProductCodes.size;
+                compareBtn.disabled = count === 0;
+                compareBtn.textContent = `Compare Selected (${count})`;
+            });
+        });
+
+        // Update the button's event listener:
+        document.querySelectorAll('.btn-buy').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const code = btn.getAttribute('data-package');
+                const name = btn.getAttribute('data-name');
+                const price = parseFloat(btn.getAttribute('data-price'));
+                try {
+                    const response = await fetch('YOUR_ACTIVEPIECES_WEBHOOK_URL', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ packageCode: code, productName: name, amount: price })
+                    });
+                    const { sessionId } = await response.json();
+                    const stripe = Stripe('YOUR_STRIPE_PUBLISHABLE_KEY');
+                    await stripe.redirectToCheckout({ sessionId });
+                } catch (error) { console.error('Payment error:', error); }
+            });
+        });
+
         document.querySelectorAll('.btn-more-details').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const pkg = btn.getAttribute('data-package');
@@ -528,19 +698,55 @@
         });
     }
 
+    function showCompareModal() {
+        const selectedProducts = allProducts.filter(p => selectedProductCodes.has(p.packageCode));
+        if (selectedProducts.length === 0) return;
+        
+        // Build comparison table
+        let tableHtml = '<table class="compare-table"><thead><tr><th>Feature</th>';
+        for (const prod of selectedProducts) {
+            tableHtml += `<th>${escapeHtml(prod.name)}</th>`;
+        }
+        tableHtml += '</tr></thead><tbody>';
+        
+        // Compare rows
+        const features = [
+            { label: 'Package Code', get: p => p.packageCode },
+            { label: 'Price', get: p => p.price },
+            { label: 'Volume', get: p => p.volume ? (isNaN(p.volume) ? p.volume : p.volume + ' GB') : '—' },
+            { label: 'Duration', get: p => p.duration ? (isNaN(p.duration) ? p.duration : p.duration + ' days') : '—' },
+            { label: 'SMS', get: p => p.smsStatus || '—' },
+            { label: 'Top-up', get: p => p.supportTopUp || '—' },
+            { label: 'Activation', get: p => p.activeType || '—' },
+            { label: 'IP Route', get: p => p.ipExport || '—' }
+        ];
+        for (const feat of features) {
+            tableHtml += `<tr><th>${feat.label}</th>`;
+            for (const prod of selectedProducts) {
+                tableHtml += `<td>${escapeHtml(feat.get(prod) || '—')}</td>`;
+            }
+            tableHtml += '</tr>';
+        }
+        tableHtml += '</tbody></table>';
+        document.getElementById('compareTableContainer').innerHTML = tableHtml;
+        compareModal.style.display = 'flex';
+    }
+
+    // Event listeners
     openDropdownBtn.addEventListener('click', openDropdown);
     closeDropdownBtn.addEventListener('click', closeDropdown);
     cancelDropdownBtn.addEventListener('click', cancelSelection);
     applyCountriesBtn.addEventListener('click', applySelection);
     showPlansBtn.addEventListener('click', filterProductsAndRender);
+    compareBtn.addEventListener('click', showCompareModal);
+    closeCompareBtn.addEventListener('click', () => compareModal.style.display = 'none');
+    window.addEventListener('click', (e) => { if (e.target === compareModal) compareModal.style.display = 'none'; });
     countryFilterInput.addEventListener('input', (e) => {
         const term = e.target.value.trim().toLowerCase();
         const filtered = term ? allCountries.filter(c => c.toLowerCase().includes(term)) : allCountries;
         renderCheckboxList(filtered);
     });
-    dropdownOverlay.addEventListener('click', (e) => {
-        if (e.target === dropdownOverlay) closeDropdown();
-    });
+    dropdownOverlay.addEventListener('click', (e) => { if (e.target === dropdownOverlay) closeDropdown(); });
 
     loadData();
 </script>
