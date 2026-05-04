@@ -378,7 +378,7 @@
 
             allProducts = products;
             allCountries = Array.from(countrySet).sort((a,b) => a.localeCompare(b));
-            statsPlaceholder.innerHTML = `📦 ${allProducts.length} total plans · 🌎 ${allCountries.length} countries available (select countries, then click "Show plans")`;
+            statsPlaceholder.innerHTML = `📦 ${allProducts.length} total plans · 🌏 ${allCountries.length} countries available (select countries, then click "Show plans")`;
             updateChipsDisplay();
         } catch (err) {
             console.error(err);
