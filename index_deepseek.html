@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Download SIM | Travel Essentials for the Globals</title>
+    <title>Download SIM | Travel Essentials for the Globe</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -17,7 +17,6 @@
         h1 { font-size: 1.8rem; margin-bottom: 0.25rem; color: #0f3b5c; }
         .subtitle { color: #4a627a; margin-bottom: 2rem; border-left: 4px solid #2c7da0; padding-left: 1rem; }
 
-        /* Country selector card */
         .selector-card {
             background: white;
             border-radius: 20px;
@@ -84,7 +83,6 @@
         }
         .show-plans-btn:hover, .open-dropdown-btn:hover { opacity: 0.9; }
 
-        /* Dropdown overlay */
         .dropdown-overlay {
             display: none;
             position: fixed;
@@ -212,7 +210,6 @@
         }
         .btn-more-details:hover { background: #eef2f5; transform: none; }
         
-        /* Fix for long country codes and operator lists */
         .more-details-content {
             margin-top: 1rem;
             padding-top: 1rem;
@@ -243,7 +240,6 @@
     <h1>🌏 eSIM Product Finder</h1>
     <div class="subtitle">Select one or more countries – then click “Show plans”</div>
 
-    <!-- Country selection card -->
     <div class="selector-card">
         <div id="selectedChips" class="selected-chips"></div>
         <div class="action-bar">
@@ -252,7 +248,6 @@
         </div>
     </div>
 
-    <!-- Dropdown overlay -->
     <div id="dropdownOverlay" class="dropdown-overlay">
         <div class="dropdown-panel">
             <div class="dropdown-header">
@@ -278,7 +273,6 @@
 </div>
 
 <script>
-    // ==================== CONFIGURATION ====================
     const SHEET_ID = '1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY';
     const SHEET_NAME = 'LISTING_API_Data';
     const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${SHEET_NAME}`;
@@ -314,6 +308,7 @@
         result.push(current.trim());
         return result;
     }
+
     function stripQuotes(str) { return str ? str.replace(/^"|"$/g, '') : ''; }
     function escapeHtml(str) { return str ? str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')) : ''; }
 
@@ -377,7 +372,7 @@
             }
 
             allProducts = products;
-            allCountries = Array.from(countrySet).sort((a,b) => a.localeCompare(b));
+            allCountries = Array.from(countrySet).sort();
             updateStatsMessage(0);
             updateChipsDisplay();
         } catch (err) {
@@ -466,6 +461,7 @@
         closeDropdown();
     }
 
+    // ========== FIXED: AND logic – product must include ALL selected countries ==========
     function filterProductsAndRender() {
         if (!allProducts.length) return;
         let filtered = [];
@@ -473,7 +469,7 @@
             filtered = [];
         } else {
             filtered = allProducts.filter(product =>
-                product.countries.some(c => selectedCountries.includes(c))
+                selectedCountries.every(selectedCountry => product.countries.includes(selectedCountry))
             );
         }
         renderProductCards(filtered);
@@ -482,7 +478,7 @@
 
     function renderProductCards(products) {
         if (products.length === 0) {
-            productListDiv.innerHTML = '<div class="no-results">🌎 No eSIM plans match the selected countries. Try selecting different countries.</div>';
+            productListDiv.innerHTML = '<div class="no-results">🌎 No eSIM plans include all selected countries. Try selecting fewer or different countries.</div>';
             return;
         }
         let html = '';
@@ -532,7 +528,6 @@
         });
     }
 
-    // Event listeners
     openDropdownBtn.addEventListener('click', openDropdown);
     closeDropdownBtn.addEventListener('click', closeDropdown);
     cancelDropdownBtn.addEventListener('click', cancelSelection);
