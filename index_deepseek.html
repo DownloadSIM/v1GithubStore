@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>eSIM Product Finder – Multi‑Country</title>
+    <title>Download SIM | Travel Essentials for the Globals</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -274,7 +274,7 @@
         <div class="stats" id="statsPlaceholder">Loading product catalog...</div>
         <div id="productList" class="product-grid"></div>
     </div>
-    <footer>DownloadSIM™ · All rights reserved</footer>
+    <footer>DownloadSIM™ | Since 2025</footer>
 </div>
 
 <script>
@@ -378,12 +378,23 @@
 
             allProducts = products;
             allCountries = Array.from(countrySet).sort((a,b) => a.localeCompare(b));
-            statsPlaceholder.innerHTML = `📦 ${allProducts.length} total plans · 🌏 ${allCountries.length} countries available (select countries, then click "Show plans")`;
+            updateStatsMessage(0);
             updateChipsDisplay();
         } catch (err) {
             console.error(err);
             statsPlaceholder.innerHTML = '❌ Failed to load data. Check sheet publication.';
             productListDiv.innerHTML = '<div class="no-results">Error loading product data.</div>';
+        }
+    }
+
+    function updateStatsMessage(matches) {
+        const totalProducts = allProducts.length;
+        const totalDestinations = allCountries.length;
+        const selectedCount = selectedCountries.length;
+        if (selectedCount === 0) {
+            statsPlaceholder.innerHTML = `📦 ${totalProducts} total products · 🌏 ${totalDestinations} destinations (select countries)`;
+        } else {
+            statsPlaceholder.innerHTML = `📦 ${matches} products available for selected ${selectedCount} countries · 🌏 ${totalDestinations} destinations`;
         }
     }
 
@@ -401,6 +412,8 @@
                 e.stopPropagation();
                 selectedCountries = selectedCountries.filter(c => c !== country);
                 updateChipsDisplay();
+                productListDiv.innerHTML = '<div class="no-results">🌎 Click "Show plans" to update results.</div>';
+                updateStatsMessage(0);
             });
             selectedChipsDiv.appendChild(chip);
         });
@@ -445,6 +458,8 @@
     function applySelection() {
         updateChipsDisplay();
         closeDropdown();
+        productListDiv.innerHTML = '<div class="no-results">🌎 Click "Show plans" to update results.</div>';
+        updateStatsMessage(0);
     }
 
     function cancelSelection() {
@@ -462,16 +477,12 @@
             );
         }
         renderProductCards(filtered);
-        if (selectedCountries.length === 0) {
-            statsPlaceholder.innerHTML = `📦 ${allProducts.length} total plans · 🌏 ${allCountries.length} countries available · (select some countries, then click "Show plans")`;
-        } else {
-            statsPlaceholder.innerHTML = `📦 ${allProducts.length} plans · ${filtered.length} match selected countries · 🌏 ${allCountries.length} destinations`;
-        }
+        updateStatsMessage(filtered.length);
     }
 
     function renderProductCards(products) {
         if (products.length === 0) {
-            productListDiv.innerHTML = '<div class="no-results">🌏 No eSIM plans match the selected countries. Try selecting different countries.</div>';
+            productListDiv.innerHTML = '<div class="no-results">🌎 No eSIM plans match the selected countries. Try selecting different countries.</div>';
             return;
         }
         let html = '';
