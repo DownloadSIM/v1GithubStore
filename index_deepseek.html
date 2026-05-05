@@ -656,19 +656,25 @@
         // Update the button's event listener:
         document.querySelectorAll('.btn-buy').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const code = btn.getAttribute('data-package');
-                const name = btn.getAttribute('data-name');
-                const price = parseFloat(btn.getAttribute('data-price'));
-                try {
-                    const response = await fetch('YOUR_ACTIVEPIECES_WEBHOOK_URL', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ packageCode: code, productName: name, amount: price })
-                    });
-                    const { sessionId } = await response.json();
-                    const stripe = Stripe('YOUR_STRIPE_PUBLISHABLE_KEY');
-                    await stripe.redirectToCheckout({ sessionId });
-                } catch (error) { console.error('Payment error:', error); }
+                const packageCode = btn.getAttribute('data-package');
+        
+                // Step 1: Ask ActivePieces for full product details
+                const response = await fetch('YOUR_ACTIVEPIECES_WEBHOOK_URL', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ packageCode: packageCode })
+                });
+        
+                const fullProduct = await response.json();
+        
+                // Now fullProduct contains: name, price, data_mb, validity_days, etc.
+                // Show the review screen (you need to create that part later)
+                console.log('Full product:', fullProduct);
+        
+                // For now, just alert to confirm it worked
+                alert(`Ready to buy: ${fullProduct.product_name} for ${fullProduct.price}`);
+        
+                // Later you will replace the alert with a review screen + confirm button
             });
         });
 
