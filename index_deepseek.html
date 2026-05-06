@@ -654,7 +654,7 @@
             });
         });
 
-        // ***** CORRECTED BUY BUTTON EVENT LISTENER *****
+        // ***** DEBUGGING BUY BUTTON: shows raw JSON response *****
         document.querySelectorAll('.btn-buy').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const packageCode = btn.getAttribute('data-package');
@@ -669,25 +669,16 @@
                     const fullProduct = await response.json();
                     console.log('Full product response:', fullProduct);
                     
-                    // Try to get product name and price from common patterns
-                    let productName = fullProduct.product_name || fullProduct.name || fullProduct.productName || 'Unknown';
-                    let productPrice = fullProduct.price || fullProduct.amount || 'N/A';
+                    // Show raw JSON in alert to see the actual structure
+                    alert('Response from ActivePieces:\n' + JSON.stringify(fullProduct, null, 2));
                     
-                    // If price is in cents (integer), convert to dollars
-                    if (typeof productPrice === 'number' && productPrice > 100) {
-                        productPrice = (productPrice / 100).toFixed(2);
-                    }
-                    
-                    alert(`Ready to buy: ${productName} for $${productPrice}`);
-                    
-                    // Later replace alert with review screen
                 } catch (error) {
                     console.error('Error:', error);
                     alert('Failed to fetch product details. Check console.');
                 }
             });
         });
-        // ***** END OF CORRECTED BUY BUTTON *****
+        // ***** END OF DEBUGGING BUY BUTTON *****
 
         document.querySelectorAll('.btn-more-details').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -744,7 +735,7 @@
             }
             tableHtml += '</tr>';
         }
-        tableHtml += '</tbody></table>';
+        tableHtml += '</tbody></td>';
         document.getElementById('compareTableContainer').innerHTML = tableHtml;
         compareModal.style.display = 'flex';
     }
