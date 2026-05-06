@@ -88,7 +88,8 @@
         .dropdown-overlay {
             display: none;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: rgba(0,0,0,0.3);
             z-index: 1000;
             align-items: center;
@@ -653,30 +654,40 @@
             });
         });
 
-        // Update the button's event listener:
+        // ***** CORRECTED BUY BUTTON EVENT LISTENER *****
         document.querySelectorAll('.btn-buy').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 const packageCode = btn.getAttribute('data-package');
-        
-                // Step 1: Ask ActivePieces for full product details
-                const response = await fetch('https://cloud.activepieces.com/api/v1/webhooks/rRokAxPVoqRkNlxc0Hqzd/sync', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ packageCode: packageCode })
-                });
-        
-                const fullProduct = await response.json();
-        
-                // Now fullProduct contains: name, price, data_mb, validity_days, etc.
-                // Show the review screen (you need to create that part later)
-                console.log('Full product:', fullProduct);
-        
-                // For now, just alert to confirm it worked
-                alert(`Ready to buy: ${fullProduct.product_name} for ${fullProduct.price}`);
-        
-                // Later you will replace the alert with a review screen + confirm button
+                
+                try {
+                    const response = await fetch('https://cloud.activepieces.com/api/v1/webhooks/rRokAxPVoqRkNlxc0Hqzd/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ packageCode: packageCode })
+                    });
+                    
+                    const fullProduct = await response.json();
+                    console.log('Full product response:', fullProduct);
+                    
+                    // Try to get product name and price from common patterns
+                    let productName = fullProduct.product_name || fullProduct.name || fullProduct.productName || 'Unknown';
+                    let productPrice = fullProduct.price || fullProduct.amount || 'N/A';
+                    
+                    // If price is in cents (integer), convert to dollars
+                    if (typeof productPrice === 'number' && productPrice > 100) {
+                        productPrice = (productPrice / 100).toFixed(2);
+                    }
+                    
+                    alert(`Ready to buy: ${productName} for $${productPrice}`);
+                    
+                    // Later replace alert with review screen
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Failed to fetch product details. Check console.');
+                }
             });
         });
+        // ***** END OF CORRECTED BUY BUTTON *****
 
         document.querySelectorAll('.btn-more-details').forEach(btn => {
             btn.addEventListener('click', (e) => {
