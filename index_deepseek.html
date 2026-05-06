@@ -659,7 +659,7 @@
                 const packageCode = btn.getAttribute('data-package');
         
                 // Step 1: Ask ActivePieces for full product details
-                const response = await fetch('https://cloud.activepieces.com/api/v1/webhooks/rRokAxPVoqRkNlxc0Hqzd', {
+                const response = await fetch('https://cloud.activepieces.com/api/v1/webhooks/rRokAxPVoqRkNlxc0Hqzd/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ packageCode: packageCode })
