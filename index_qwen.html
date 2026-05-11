@@ -45,42 +45,68 @@
   </style>
 </head>
 <body>
-  <script>
-  // 🔧 PASTE YOUR APC SEARCH WEBHOOK URL HERE
+<script>
   const APC_SEARCH_URL = "YOUR_APC_SEARCH_WEBHOOK_URL";
-
   let selectedCountries = [];
   let cachedPlans = [];
 
-  // Fetch countries directly from AppsScript_Countries sheet
+  // Fetch countries from AppsScript_Countries sheet
   async function fetchCountryList() {
+    // Method 1: Try gviz CSV endpoint
     const csvUrl = "https://docs.google.com/spreadsheets/d/1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY/gviz/tq?tqx=out:csv&sheet=AppsScript_Countries";
+    
     try {
       const res = await fetch(csvUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
-      // Skip header, remove quotes, filter empty rows
-      return text.split('\n').slice(1).map(r => r.replace(/^"|"$/g, '').trim()).filter(Boolean);
+      console.log("Raw CSV:", text);
+      
+      // Parse CSV: skip header, remove quotes, filter empty
+      const countries = text.split('\n')
+        .slice(1)
+        .map(row => row.replace(/^"|"$/g, '').trim())
+        .filter(Boolean);
+      
+      console.log("Parsed countries:", countries.length);
+      return countries;
     } catch (e) {
-      console.error("Failed to load countries:", e);
-      return ["Global", "Europe", "USA", "UK", "Japan", "South Korea"]; // Safe fallback
+      console.error("CSV fetch failed:", e);
+      
+      // Fallback: Hardcoded list for testing
+      return ["Japan", "South Korea", "USA", "UK", "France", "Germany", "Global", "Europe"];
     }
   }
 
-  // Initialize dropdown with live data
   async function initDropdown() {
     const list = document.getElementById("countryList");
-    list.innerHTML = `<div style="padding:12px; color:#64748b;">Loading countries...</div>`;
+    const display = document.getElementById("selectorDisplay");
+    
+    // Show loading state
+    list.innerHTML = '<div style="padding:12px; color:#64748b;">Loading...</div>';
+    display.textContent = "Loading...";
+    
     const countries = await fetchCountryList();
+    
+    if (countries.length === 0) {
+      list.innerHTML = '<div style="padding:12px; color:#dc2626;">No countries loaded</div>';
+      display.textContent = "0 selected";
+      return;
+    }
+    
+    // Render checkboxes
     list.innerHTML = countries.map(c => `
       <label class="country-item">
         <input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}
       </label>
     `).join('');
+    
+    display.textContent = "0 selected";
+    console.log("Dropdown initialized with", countries.length, "countries");
   }
 
   function toggleDropdown() {
-    document.getElementById("selectorDropdown").style.display = 
-      document.getElementById("selectorDropdown").style.display === "block" ? "none" : "block";
+    const dropdown = document.getElementById("selectorDropdown");
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
   }
 
   function filterCountries() {
@@ -92,19 +118,19 @@
 
   function updateSelection() {
     selectedCountries = Array.from(document.querySelectorAll("#countryList input:checked")).map(cb => cb.value);
-    document.getElementById("selectorDisplay").textContent = selectedCountries.length 
-      ? `${selectedCountries.length} selected` : "0 selected";
+    document.getElementById("selectorDisplay").textContent = 
+      selectedCountries.length ? `${selectedCountries.length} selected` : "0 selected";
   }
 
-  // Close dropdown when clicking outside
   document.addEventListener("click", e => {
-    if (!e.target.closest(".country-selector")) document.getElementById("selectorDropdown").style.display = "none";
+    if (!e.target.closest(".country-selector")) {
+      document.getElementById("selectorDropdown").style.display = "none";
+    }
   });
 
-  // --- Search & Filter Logic ---
   document.getElementById("findPlansBtn").addEventListener("click", async () => {
     if (!selectedCountries.length) return alert("Select at least one country.");
-    document.getElementById("resultsContainer").innerHTML = `<div class="state"><div class="loader"></div>Searching...</div>`;
+    document.getElementById("resultsContainer").innerHTML = '<div class="state"><div class="loader"></div>Searching...</div>';
     try {
       const res = await fetch(APC_SEARCH_URL, {
         method: "POST",
@@ -114,7 +140,7 @@
       cachedPlans = await res.json();
       applyFilters();
     } catch (e) {
-      document.getElementById("resultsContainer").innerHTML = `<div class="state">️ Search failed. Try again.</div>`;
+      document.getElementById("resultsContainer").innerHTML = '<div class="state">⚠️ Search failed. Try again.</div>';
     }
   });
 
@@ -136,10 +162,8 @@
   }
 
   function renderTable(plans) {
-    if (!plans.length) return document.getElementById("resultsContainer").innerHTML = `<div class="state">No plans match filters.</div>`;
-    let html = `<div class="table-wrapper"><table><thead><tr>
-      <th>#</th><th>Name</th><th>Price</th><th>Data / Speed</th><th>Duration</th><th>Price/GB & /Day</th><th>Target Codes</th><th>IP Route</th><th>Recharge</th><th></th>
-    </tr></thead><tbody>`;
+    if (!plans.length) return document.getElementById("resultsContainer").innerHTML = '<div class="state">No plans match filters.</div>';
+    let html = '<div class="table-wrapper"><table><thead><tr><th>#</th><th>Name</th><th>Price</th><th>Data / Speed</th><th>Duration</th><th>Price/GB & /Day</th><th>Target Codes</th><th>IP Route</th><th>Recharge</th><th></th></tr></thead><tbody>';
     
     plans.forEach((p, i) => {
       const gb = p.gb === "unlimited" ? "∞" : p.gb;
@@ -147,33 +171,21 @@
       const priceGb = p.gb === "unlimited" ? "N/A" : `$${(p.price / parseFloat(p.gb)).toFixed(2)}`;
       const priceDay = `$${(p.price / parseFloat(p.days)).toFixed(2)}`;
       
-      html += `<tr>
-        <td>${i+1}</td>
-        <td><b>${p.name}</b></td>
-        <td>$${p.price.toFixed(2)}</td>
-        <td>${gb} GB / ${speed}</td>
-        <td>${p.days} Days</td>
-        <td>${priceGb} <br> ${priceDay}</td>
-        <td style="font-size:0.8rem; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${p.codes}">${p.codes}</td>
-        <td>${p.ipRoute}</td>
-        <td>${p.reloadable === "yes" ? "✅" : "❌"}</td>
-        <td><button class="buy-btn" onclick="startCheckout('${p.planId}')">Buy</button></td>
-      </tr>`;
+      html += `<tr><td>${i+1}</td><td><b>${p.name}</b></td><td>$${p.price.toFixed(2)}</td><td>${gb} GB / ${speed}</td><td>${p.days} Days</td><td>${priceGb}<br>${priceDay}</td><td style="font-size:0.8rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.codes}">${p.codes}</td><td>${p.ipRoute}</td><td>${p.reloadable === "yes" ? "✅" : "❌"}</td><td><button class="buy-btn" onclick="startCheckout('${p.planId}')">Buy</button></td></tr>`;
     });
-    html += `</tbody></table></div>`;
+    html += '</tbody></table></div>';
     document.getElementById("resultsContainer").innerHTML = html;
   }
 
   function startCheckout(planId) {
     const email = prompt("Enter your email for the eSIM QR code:");
     if (!email || !email.includes("@")) return alert("Invalid email.");
-    alert(`Checkout flow for ${planId} will be connected in the next step.`);
+    alert(`Checkout for ${planId} - Flow coming next`);
   }
 
-  // Initialize on load
+  // Initialize on page load
   initDropdown();
-</script>
-  
+</script>  
   <div class="container">
     <h1>🌍 Instant eSIM Data</h1>
 
