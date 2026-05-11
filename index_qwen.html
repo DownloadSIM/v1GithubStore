@@ -9,16 +9,20 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
     body { background: var(--bg); color: var(--text); padding: 20px; }
     .container { max-width: 1200px; margin: 0 auto; }
-    h1 { text-align: center; margin-bottom: 20px; }
+    h1 { text-align: center; margin-bottom: 24px; }
+    
+    /* Layout */
     .search-row { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-row { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; background: var(--card); padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     .field { display: flex; flex-direction: column; gap: 6px; }
     .field label { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
     .range-group { display: flex; align-items: center; gap: 8px; }
     input, select, button { padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; }
-    button { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 600; }
+    button { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
     button:hover { opacity: 0.9; }
     button.secondary { background: var(--muted); }
+    
+    /* Country Dropdown */
     .country-selector { position: relative; width: 300px; }
     .selector-display { background: #fff; border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
     .selector-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; max-height: 250px; overflow-y: auto; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
@@ -27,12 +31,16 @@
     .country-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; }
     .country-item:hover { background: #f1f5f9; }
     .country-item input { width: auto; margin: 0; }
+    
+    /* Table */
     .table-wrapper { overflow-x: auto; background: var(--card); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     table { width: 100%; border-collapse: collapse; min-width: 900px; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
     th { background: #f8fafc; font-weight: 600; color: var(--muted); position: sticky; top: 0; }
     tr:hover { background: #f8fafc; }
     .buy-btn { background: #10b981; padding: 6px 12px; font-size: 0.85rem; }
+    
+    /* States */
     .state { text-align: center; padding: 40px; color: var(--muted); }
     .loader { border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -70,9 +78,13 @@
       <div class="field">
         <label>Duration (Days)</label>
         <div class="range-group">
-          <select id="minDuration"><option value="">Min</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option></select>
+          <select id="minDuration">
+            <option value="">Min</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option>
+          </select>
           <span>to</span>
-          <select id="maxDuration"><option value="">Max</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option></select>
+          <select id="maxDuration">
+            <option value="">Max</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option>
+          </select>
         </div>
       </div>
       <div class="field" style="justify-content: flex-end;">
@@ -85,30 +97,35 @@
   </div>
 
   <script>
-    const APC_SEARCH_URL = "YOUR_APC_SEARCH_WEBHOOK_URL";
+    // 🔧 CONFIGURATION
+    const APC_SEARCH_URL = "https://cloud.activepieces.com/api/v1/webhooks/0npqEufU6rvxr9IMb9uu7";
+    const COUNTRIES_CSV_URL = "https://docs.google.com/spreadsheets/d/1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY/gviz/tq?tqx=out:csv&sheet=AppsScript_Countries";
+
     let selectedCountries = [];
     let cachedPlans = [];
 
-    async function fetchCountryList() {
-      const csvUrl = "https://docs.google.com/spreadsheets/d/1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY/gviz/tq?tqx=out:csv&sheet=AppsScript_Countries";
-      try {
-        const res = await fetch(csvUrl);
-        if (!res.ok) throw new Error("Failed to fetch");
-        const text = await res.text();
-        return text.split('\n').slice(1).map(r => r.replace(/^"|"$/g, '').trim()).filter(Boolean);
-      } catch (e) {
-        console.error("Country fetch error:", e);
-        return ["Japan", "South Korea", "USA", "UK", "France", "Germany", "Global", "Europe"];
-      }
-    }
-
+    // 1. Fetch & Render Country Dropdown
     async function initDropdown() {
       const list = document.getElementById("countryList");
       const display = document.getElementById("selectorDisplay");
       list.innerHTML = '<div style="padding:12px; color:#64748b;">Loading countries...</div>';
-      const countries = await fetchCountryList();
-      list.innerHTML = countries.map(c => `<label class="country-item"><input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}</label>`).join('');
-      display.textContent = "0 selected";
+      
+      try {
+        const res = await fetch(COUNTRIES_CSV_URL);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const text = await res.text();
+        const countries = text.split('\n').slice(1).map(r => r.replace(/^"|"$/g, '').trim()).filter(Boolean);
+        
+        list.innerHTML = countries.map(c => `
+          <label class="country-item">
+            <input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}
+          </label>
+        `).join('');
+        display.textContent = "0 selected";
+      } catch (e) {
+        list.innerHTML = '<div style="padding:12px; color:#dc2626;">Failed to load countries.</div>';
+        console.error(e);
+      }
     }
 
     function toggleDropdown() {
@@ -132,30 +149,42 @@
       if (!e.target.closest(".country-selector")) document.getElementById("selectorDropdown").style.display = "none";
     });
 
+    // 2. Connect "Find Plans" to APC Flow
     document.getElementById("findPlansBtn").addEventListener("click", async () => {
-      if (!selectedCountries.length) return alert("Select at least one country.");
+      if (!selectedCountries.length) return alert("Please select at least one country.");
+
       document.getElementById("resultsContainer").innerHTML = '<div class="state"><div class="loader"></div>Searching...</div>';
+
       try {
-        const res = await fetch(APC_SEARCH_URL, {
+        const response = await fetch(APC_SEARCH_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ countries: selectedCountries })
         });
-        cachedPlans = await res.json();
+
+        const data = await response.json();
+        // Handle both direct array response and wrapped response
+        const plans = Array.isArray(data) ? data : (data.body || []);
+        
+        cachedPlans = plans;
         applyFilters();
       } catch (e) {
-        document.getElementById("resultsContainer").innerHTML = '<div class="state">⚠️ Search failed. Try again.</div>';
+        console.error(e);
+        document.getElementById("resultsContainer").innerHTML = '<div class="state">⚠️ Search failed. Check console.</div>';
       }
     });
 
+    // 3. Client-Side Filtering
     document.getElementById("applyFiltersBtn").addEventListener("click", applyFilters);
 
     function applyFilters() {
       if (!cachedPlans.length) return;
+      
       const minD = parseFloat(document.getElementById("minData").value) || 0;
       const maxD = parseFloat(document.getElementById("maxData").value) || Infinity;
       const minDur = parseFloat(document.getElementById("minDuration").value) || 0;
       const maxDur = parseFloat(document.getElementById("maxDuration").value) || Infinity;
+
       const filtered = cachedPlans.filter(p => {
         const gb = p.gb === "unlimited" ? Infinity : parseFloat(p.gb);
         const days = parseFloat(p.days);
@@ -164,17 +193,35 @@
       renderTable(filtered);
     }
 
+    // 4. Render Results Table
     function renderTable(plans) {
-      if (!plans.length) return document.getElementById("resultsContainer").innerHTML = '<div class="state">No plans match filters.</div>';
-      let html = '<div class="table-wrapper"><table><thead><tr><th>#</th><th>Name</th><th>Price</th><th>Data</th><th>Duration</th><th>Price/GB</th><th>Countries</th><th>Buy</th></tr></thead><tbody>';
+      if (!plans.length) return document.getElementById("resultsContainer").innerHTML = '<div class="state">No plans match your filters.</div>';
+      
+      let html = `<div class="table-wrapper"><table><thead><tr>
+        <th>#</th><th>Name</th><th>Price</th><th>Data / Speed</th><th>Duration</th><th>Price/GB</th><th>Countries</th><th>Action</th>
+      </tr></thead><tbody>`;
+      
       plans.forEach((p, i) => {
-        html += `<tr><td>${i+1}</td><td>${p.name}</td><td>$${p.price.toFixed(2)}</td><td>${p.gb} GB</td><td>${p.days} days</td><td>$${(p.price/parseFloat(p.gb||1)).toFixed(2)}</td><td>${p.codes}</td><td><button class="buy-btn" onclick="alert('Checkout coming soon')">Buy</button></td></tr>`;
+        const gb = p.gb === "unlimited" ? "∞" : (p.gb + " GB");
+        const speed = p.category || "Full Speed";
+        const priceGb = p.gb === "unlimited" ? "N/A" : `$${(p.price / parseFloat(p.gb || 1)).toFixed(2)}`;
+        
+        html += `<tr>
+          <td>${i+1}</td>
+          <td><b>${p.name}</b></td>
+          <td>$${parseFloat(p.price).toFixed(2)}</td>
+          <td>${gb} / ${speed}</td>
+          <td>${p.days} Days</td>
+          <td>${priceGb}</td>
+          <td style="font-size:0.8rem; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.codes}</td>
+          <td><button class="buy-btn" onclick="alert('Checkout flow coming next!')">Buy</button></td>
+        </tr>`;
       });
       html += '</tbody></table></div>';
       document.getElementById("resultsContainer").innerHTML = html;
     }
 
-    // Initialize on load
+    // Initialize on page load
     initDropdown();
   </script>
 </body>
