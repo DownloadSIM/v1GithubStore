@@ -45,6 +45,135 @@
   </style>
 </head>
 <body>
+  <script>
+  // 🔧 PASTE YOUR APC SEARCH WEBHOOK URL HERE
+  const APC_SEARCH_URL = "YOUR_APC_SEARCH_WEBHOOK_URL";
+
+  let selectedCountries = [];
+  let cachedPlans = [];
+
+  // Fetch countries directly from AppsScript_Countries sheet
+  async function fetchCountryList() {
+    const csvUrl = "https://docs.google.com/spreadsheets/d/1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY/gviz/tq?tqx=out:csv&sheet=AppsScript_Countries";
+    try {
+      const res = await fetch(csvUrl);
+      const text = await res.text();
+      // Skip header, remove quotes, filter empty rows
+      return text.split('\n').slice(1).map(r => r.replace(/^"|"$/g, '').trim()).filter(Boolean);
+    } catch (e) {
+      console.error("Failed to load countries:", e);
+      return ["Global", "Europe", "USA", "UK", "Japan", "South Korea"]; // Safe fallback
+    }
+  }
+
+  // Initialize dropdown with live data
+  async function initDropdown() {
+    const list = document.getElementById("countryList");
+    list.innerHTML = `<div style="padding:12px; color:#64748b;">Loading countries...</div>`;
+    const countries = await fetchCountryList();
+    list.innerHTML = countries.map(c => `
+      <label class="country-item">
+        <input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}
+      </label>
+    `).join('');
+  }
+
+  function toggleDropdown() {
+    document.getElementById("selectorDropdown").style.display = 
+      document.getElementById("selectorDropdown").style.display === "block" ? "none" : "block";
+  }
+
+  function filterCountries() {
+    const q = document.getElementById("countrySearch").value.toLowerCase();
+    document.querySelectorAll(".country-item").forEach(item => {
+      item.style.display = item.textContent.toLowerCase().includes(q) ? "flex" : "none";
+    });
+  }
+
+  function updateSelection() {
+    selectedCountries = Array.from(document.querySelectorAll("#countryList input:checked")).map(cb => cb.value);
+    document.getElementById("selectorDisplay").textContent = selectedCountries.length 
+      ? `${selectedCountries.length} selected` : "0 selected";
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", e => {
+    if (!e.target.closest(".country-selector")) document.getElementById("selectorDropdown").style.display = "none";
+  });
+
+  // --- Search & Filter Logic ---
+  document.getElementById("findPlansBtn").addEventListener("click", async () => {
+    if (!selectedCountries.length) return alert("Select at least one country.");
+    document.getElementById("resultsContainer").innerHTML = `<div class="state"><div class="loader"></div>Searching...</div>`;
+    try {
+      const res = await fetch(APC_SEARCH_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ countries: selectedCountries })
+      });
+      cachedPlans = await res.json();
+      applyFilters();
+    } catch (e) {
+      document.getElementById("resultsContainer").innerHTML = `<div class="state">️ Search failed. Try again.</div>`;
+    }
+  });
+
+  document.getElementById("applyFiltersBtn").addEventListener("click", applyFilters);
+
+  function applyFilters() {
+    if (!cachedPlans.length) return;
+    const minD = parseFloat(document.getElementById("minData").value) || 0;
+    const maxD = parseFloat(document.getElementById("maxData").value) || Infinity;
+    const minDur = parseFloat(document.getElementById("minDuration").value) || 0;
+    const maxDur = parseFloat(document.getElementById("maxDuration").value) || Infinity;
+
+    const filtered = cachedPlans.filter(p => {
+      const gb = p.gb === "unlimited" ? Infinity : parseFloat(p.gb);
+      const days = parseFloat(p.days);
+      return gb >= minD && gb <= maxD && days >= minDur && days <= maxDur;
+    });
+    renderTable(filtered);
+  }
+
+  function renderTable(plans) {
+    if (!plans.length) return document.getElementById("resultsContainer").innerHTML = `<div class="state">No plans match filters.</div>`;
+    let html = `<div class="table-wrapper"><table><thead><tr>
+      <th>#</th><th>Name</th><th>Price</th><th>Data / Speed</th><th>Duration</th><th>Price/GB & /Day</th><th>Target Codes</th><th>IP Route</th><th>Recharge</th><th></th>
+    </tr></thead><tbody>`;
+    
+    plans.forEach((p, i) => {
+      const gb = p.gb === "unlimited" ? "∞" : p.gb;
+      const speed = p.category || "Full Speed";
+      const priceGb = p.gb === "unlimited" ? "N/A" : `$${(p.price / parseFloat(p.gb)).toFixed(2)}`;
+      const priceDay = `$${(p.price / parseFloat(p.days)).toFixed(2)}`;
+      
+      html += `<tr>
+        <td>${i+1}</td>
+        <td><b>${p.name}</b></td>
+        <td>$${p.price.toFixed(2)}</td>
+        <td>${gb} GB / ${speed}</td>
+        <td>${p.days} Days</td>
+        <td>${priceGb} <br> ${priceDay}</td>
+        <td style="font-size:0.8rem; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${p.codes}">${p.codes}</td>
+        <td>${p.ipRoute}</td>
+        <td>${p.reloadable === "yes" ? "✅" : "❌"}</td>
+        <td><button class="buy-btn" onclick="startCheckout('${p.planId}')">Buy</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    document.getElementById("resultsContainer").innerHTML = html;
+  }
+
+  function startCheckout(planId) {
+    const email = prompt("Enter your email for the eSIM QR code:");
+    if (!email || !email.includes("@")) return alert("Invalid email.");
+    alert(`Checkout flow for ${planId} will be connected in the next step.`);
+  }
+
+  // Initialize on load
+  initDropdown();
+</script>
+  
   <div class="container">
     <h1>🌍 Instant eSIM Data</h1>
 
@@ -89,109 +218,5 @@
     <!-- 3. Results Table -->
     <div id="resultsContainer"></div>
   </div>
-
-  <script>
-    // 🔧 PASTE YOUR APC WEBHOOK URL HERE
-    const APC_SEARCH_URL = "YOUR_APC_SEARCH_WEBHOOK_URL";
-    
-    // Comprehensive country list (edit as needed)
-    const COUNTRIES = ["Global","Europe","USA","UK","Japan","South Korea","France","Germany","Italy","Spain","Australia","Canada","Brazil","Mexico","India","Thailand","Singapore","Indonesia","Malaysia","Philippines","Vietnam","UAE","Saudi Arabia","South Africa","Kenya","Nigeria","Egypt","Turkey","Greece","Portugal","Netherlands","Belgium","Switzerland","Austria","Sweden","Norway","Denmark","Finland","Poland","Czech Republic","Hungary","Romania","Bulgaria","Croatia","Ireland","New Zealand","Chile","Argentina","Colombia","Peru"];
-    
-    let selectedCountries = [];
-    let cachedPlans = [];
-
-    // --- Country Dropdown Logic ---
-    function initDropdown() {
-      const list = document.getElementById("countryList");
-      list.innerHTML = COUNTRIES.map(c => `
-        <label class="country-item">
-          <input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}
-        </label>
-      `).join('');
-    }
-    function toggleDropdown() { document.getElementById("selectorDropdown").style.display = document.getElementById("selectorDropdown").style.display === "block" ? "none" : "block"; }
-    function filterCountries() {
-      const q = document.getElementById("countrySearch").value.toLowerCase();
-      document.querySelectorAll(".country-item").forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(q) ? "flex" : "none";
-      });
-    }
-    function updateSelection() {
-      selectedCountries = Array.from(document.querySelectorAll("#countryList input:checked")).map(cb => cb.value);
-      document.getElementById("selectorDisplay").textContent = selectedCountries.length ? `${selectedCountries.length} selected` : "0 selected";
-    }
-    document.addEventListener("click", e => { if(!e.target.closest(".country-selector")) document.getElementById("selectorDropdown").style.display = "none"; });
-
-    // --- Search & Filter Logic ---
-    document.getElementById("findPlansBtn").addEventListener("click", async () => {
-      if(!selectedCountries.length) return alert("Select at least one country.");
-      document.getElementById("resultsContainer").innerHTML = `<div class="state"><div class="loader"></div>Searching...</div>`;
-      try {
-        const res = await fetch(APC_SEARCH_URL, {
-          method: "POST", headers: {"Content-Type":"application/json"},
-          body: JSON.stringify({ countries: selectedCountries })
-        });
-        cachedPlans = await res.json();
-        applyFilters();
-      } catch(e) {
-        document.getElementById("resultsContainer").innerHTML = `<div class="state">⚠️ Search failed. Try again.</div>`;
-      }
-    });
-
-    document.getElementById("applyFiltersBtn").addEventListener("click", applyFilters);
-
-    function applyFilters() {
-      if(!cachedPlans.length) return;
-      const minD = parseFloat(document.getElementById("minData").value) || 0;
-      const maxD = parseFloat(document.getElementById("maxData").value) || Infinity;
-      const minDur = parseFloat(document.getElementById("minDuration").value) || 0;
-      const maxDur = parseFloat(document.getElementById("maxDuration").value) || Infinity;
-
-      const filtered = cachedPlans.filter(p => {
-        const gb = p.gb === "unlimited" ? Infinity : parseFloat(p.gb);
-        const days = parseFloat(p.days);
-        return gb >= minD && gb <= maxD && days >= minDur && days <= maxDur;
-      });
-      renderTable(filtered);
-    }
-
-    function renderTable(plans) {
-      if(!plans.length) return document.getElementById("resultsContainer").innerHTML = `<div class="state">No plans match filters.</div>`;
-      let html = `<div class="table-wrapper"><table><thead><tr>
-        <th>#</th><th>Name</th><th>Price</th><th>Data / Speed</th><th>Duration</th><th>Price/GB & /Day</th><th>Target Codes</th><th>IP Route</th><th>Recharge</th><th></th>
-      </tr></thead><tbody>`;
-      
-      plans.forEach((p, i) => {
-        const gb = p.gb === "unlimited" ? "∞" : p.gb;
-        const speed = p.category || "Full Speed";
-        const priceGb = p.gb === "unlimited" ? "N/A" : `$${(p.price / parseFloat(p.gb)).toFixed(2)}`;
-        const priceDay = `$${(p.price / parseFloat(p.days)).toFixed(2)}`;
-        
-        html += `<tr>
-          <td>${i+1}</td>
-          <td><b>${p.name}</b></td>
-          <td>$${p.price.toFixed(2)}</td>
-          <td>${gb} GB / ${speed}</td>
-          <td>${p.days} Days</td>
-          <td>${priceGb} <br> ${priceDay}</td>
-          <td style="font-size:0.8rem; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${p.codes}">${p.codes}</td>
-          <td>${p.ipRoute}</td>
-          <td>${p.reloadable === "yes" ? "✅" : "❌"}</td>
-          <td><button class="buy-btn" onclick="startCheckout('${p.planId}')">Buy</button></td>
-        </tr>`;
-      });
-      html += `</tbody></table></div>`;
-      document.getElementById("resultsContainer").innerHTML = html;
-    }
-
-    function startCheckout(planId) {
-      const email = prompt("Enter your email for the eSIM QR code:");
-      if(!email || !email.includes("@")) return alert("Invalid email.");
-      // TODO: Call APC checkout webhook here when Flow #2 is ready
-      alert(`Checkout flow for ${planId} will be connected in the next step.`);
-    }
-
-    initDropdown();
-  </script>
 </body>
 </html>
