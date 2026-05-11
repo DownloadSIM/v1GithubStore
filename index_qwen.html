@@ -10,8 +10,6 @@
     body { background: var(--bg); color: var(--text); padding: 20px; }
     .container { max-width: 1200px; margin: 0 auto; }
     h1 { text-align: center; margin-bottom: 20px; }
-
-    /* Layout Sections */
     .search-row { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-row { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; background: var(--card); padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     .field { display: flex; flex-direction: column; gap: 6px; }
@@ -21,8 +19,6 @@
     button { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 600; }
     button:hover { opacity: 0.9; }
     button.secondary { background: var(--muted); }
-
-    /* Custom Country Dropdown */
     .country-selector { position: relative; width: 300px; }
     .selector-display { background: #fff; border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
     .selector-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; max-height: 250px; overflow-y: auto; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
@@ -31,8 +27,6 @@
     .country-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; }
     .country-item:hover { background: #f1f5f9; }
     .country-item input { width: auto; margin: 0; }
-
-    /* Table */
     .table-wrapper { overflow-x: auto; background: var(--card); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     table { width: 100%; border-collapse: collapse; min-width: 900px; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
@@ -45,151 +39,10 @@
   </style>
 </head>
 <body>
-<script>
-  const APC_SEARCH_URL = "YOUR_APC_SEARCH_WEBHOOK_URL";
-  let selectedCountries = [];
-  let cachedPlans = [];
-
-  // Fetch countries from AppsScript_Countries sheet
-  async function fetchCountryList() {
-    // Method 1: Try gviz CSV endpoint
-    const csvUrl = "https://docs.google.com/spreadsheets/d/1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY/gviz/tq?tqx=out:csv&sheet=AppsScript_Countries";
-    
-    try {
-      const res = await fetch(csvUrl);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const text = await res.text();
-      console.log("Raw CSV:", text);
-      
-      // Parse CSV: skip header, remove quotes, filter empty
-      const countries = text.split('\n')
-        .slice(1)
-        .map(row => row.replace(/^"|"$/g, '').trim())
-        .filter(Boolean);
-      
-      console.log("Parsed countries:", countries.length);
-      return countries;
-    } catch (e) {
-      console.error("CSV fetch failed:", e);
-      
-      // Fallback: Hardcoded list for testing
-      return ["Japan", "South Korea", "USA", "UK", "France", "Germany", "Global", "Europe"];
-    }
-  }
-
-  async function initDropdown() {
-    const list = document.getElementById("countryList");
-    const display = document.getElementById("selectorDisplay");
-    
-    // Show loading state
-    list.innerHTML = '<div style="padding:12px; color:#64748b;">Loading...</div>';
-    display.textContent = "Loading...";
-    
-    const countries = await fetchCountryList();
-    
-    if (countries.length === 0) {
-      list.innerHTML = '<div style="padding:12px; color:#dc2626;">No countries loaded</div>';
-      display.textContent = "0 selected";
-      return;
-    }
-    
-    // Render checkboxes
-    list.innerHTML = countries.map(c => `
-      <label class="country-item">
-        <input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}
-      </label>
-    `).join('');
-    
-    display.textContent = "0 selected";
-    console.log("Dropdown initialized with", countries.length, "countries");
-  }
-
-  function toggleDropdown() {
-    const dropdown = document.getElementById("selectorDropdown");
-    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-  }
-
-  function filterCountries() {
-    const q = document.getElementById("countrySearch").value.toLowerCase();
-    document.querySelectorAll(".country-item").forEach(item => {
-      item.style.display = item.textContent.toLowerCase().includes(q) ? "flex" : "none";
-    });
-  }
-
-  function updateSelection() {
-    selectedCountries = Array.from(document.querySelectorAll("#countryList input:checked")).map(cb => cb.value);
-    document.getElementById("selectorDisplay").textContent = 
-      selectedCountries.length ? `${selectedCountries.length} selected` : "0 selected";
-  }
-
-  document.addEventListener("click", e => {
-    if (!e.target.closest(".country-selector")) {
-      document.getElementById("selectorDropdown").style.display = "none";
-    }
-  });
-
-  document.getElementById("findPlansBtn").addEventListener("click", async () => {
-    if (!selectedCountries.length) return alert("Select at least one country.");
-    document.getElementById("resultsContainer").innerHTML = '<div class="state"><div class="loader"></div>Searching...</div>';
-    try {
-      const res = await fetch(APC_SEARCH_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ countries: selectedCountries })
-      });
-      cachedPlans = await res.json();
-      applyFilters();
-    } catch (e) {
-      document.getElementById("resultsContainer").innerHTML = '<div class="state">⚠️ Search failed. Try again.</div>';
-    }
-  });
-
-  document.getElementById("applyFiltersBtn").addEventListener("click", applyFilters);
-
-  function applyFilters() {
-    if (!cachedPlans.length) return;
-    const minD = parseFloat(document.getElementById("minData").value) || 0;
-    const maxD = parseFloat(document.getElementById("maxData").value) || Infinity;
-    const minDur = parseFloat(document.getElementById("minDuration").value) || 0;
-    const maxDur = parseFloat(document.getElementById("maxDuration").value) || Infinity;
-
-    const filtered = cachedPlans.filter(p => {
-      const gb = p.gb === "unlimited" ? Infinity : parseFloat(p.gb);
-      const days = parseFloat(p.days);
-      return gb >= minD && gb <= maxD && days >= minDur && days <= maxDur;
-    });
-    renderTable(filtered);
-  }
-
-  function renderTable(plans) {
-    if (!plans.length) return document.getElementById("resultsContainer").innerHTML = '<div class="state">No plans match filters.</div>';
-    let html = '<div class="table-wrapper"><table><thead><tr><th>#</th><th>Name</th><th>Price</th><th>Data / Speed</th><th>Duration</th><th>Price/GB & /Day</th><th>Target Codes</th><th>IP Route</th><th>Recharge</th><th></th></tr></thead><tbody>';
-    
-    plans.forEach((p, i) => {
-      const gb = p.gb === "unlimited" ? "∞" : p.gb;
-      const speed = p.category || "Full Speed";
-      const priceGb = p.gb === "unlimited" ? "N/A" : `$${(p.price / parseFloat(p.gb)).toFixed(2)}`;
-      const priceDay = `$${(p.price / parseFloat(p.days)).toFixed(2)}`;
-      
-      html += `<tr><td>${i+1}</td><td><b>${p.name}</b></td><td>$${p.price.toFixed(2)}</td><td>${gb} GB / ${speed}</td><td>${p.days} Days</td><td>${priceGb}<br>${priceDay}</td><td style="font-size:0.8rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.codes}">${p.codes}</td><td>${p.ipRoute}</td><td>${p.reloadable === "yes" ? "✅" : "❌"}</td><td><button class="buy-btn" onclick="startCheckout('${p.planId}')">Buy</button></td></tr>`;
-    });
-    html += '</tbody></table></div>';
-    document.getElementById("resultsContainer").innerHTML = html;
-  }
-
-  function startCheckout(planId) {
-    const email = prompt("Enter your email for the eSIM QR code:");
-    if (!email || !email.includes("@")) return alert("Invalid email.");
-    alert(`Checkout for ${planId} - Flow coming next`);
-  }
-
-  // Initialize on page load
-  initDropdown();
-</script>  
   <div class="container">
     <h1>🌍 Instant eSIM Data</h1>
 
-    <!-- 1. Country Search & Fetch -->
+    <!-- Country Search -->
     <div class="search-row">
       <div class="field country-selector" id="countrySelector">
         <label>Country / Region</label>
@@ -204,7 +57,7 @@
       </div>
     </div>
 
-    <!-- 2. Filters -->
+    <!-- Filters -->
     <div class="filter-row">
       <div class="field">
         <label>Data (GB)</label>
@@ -227,8 +80,102 @@
       </div>
     </div>
 
-    <!-- 3. Results Table -->
+    <!-- Results -->
     <div id="resultsContainer"></div>
   </div>
+
+  <script>
+    const APC_SEARCH_URL = "YOUR_APC_SEARCH_WEBHOOK_URL";
+    let selectedCountries = [];
+    let cachedPlans = [];
+
+    async function fetchCountryList() {
+      const csvUrl = "https://docs.google.com/spreadsheets/d/1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY/gviz/tq?tqx=out:csv&sheet=AppsScript_Countries";
+      try {
+        const res = await fetch(csvUrl);
+        if (!res.ok) throw new Error("Failed to fetch");
+        const text = await res.text();
+        return text.split('\n').slice(1).map(r => r.replace(/^"|"$/g, '').trim()).filter(Boolean);
+      } catch (e) {
+        console.error("Country fetch error:", e);
+        return ["Japan", "South Korea", "USA", "UK", "France", "Germany", "Global", "Europe"];
+      }
+    }
+
+    async function initDropdown() {
+      const list = document.getElementById("countryList");
+      const display = document.getElementById("selectorDisplay");
+      list.innerHTML = '<div style="padding:12px; color:#64748b;">Loading countries...</div>';
+      const countries = await fetchCountryList();
+      list.innerHTML = countries.map(c => `<label class="country-item"><input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}</label>`).join('');
+      display.textContent = "0 selected";
+    }
+
+    function toggleDropdown() {
+      const d = document.getElementById("selectorDropdown");
+      d.style.display = d.style.display === "block" ? "none" : "block";
+    }
+
+    function filterCountries() {
+      const q = document.getElementById("countrySearch").value.toLowerCase();
+      document.querySelectorAll(".country-item").forEach(item => {
+        item.style.display = item.textContent.toLowerCase().includes(q) ? "flex" : "none";
+      });
+    }
+
+    function updateSelection() {
+      selectedCountries = Array.from(document.querySelectorAll("#countryList input:checked")).map(cb => cb.value);
+      document.getElementById("selectorDisplay").textContent = selectedCountries.length ? `${selectedCountries.length} selected` : "0 selected";
+    }
+
+    document.addEventListener("click", e => {
+      if (!e.target.closest(".country-selector")) document.getElementById("selectorDropdown").style.display = "none";
+    });
+
+    document.getElementById("findPlansBtn").addEventListener("click", async () => {
+      if (!selectedCountries.length) return alert("Select at least one country.");
+      document.getElementById("resultsContainer").innerHTML = '<div class="state"><div class="loader"></div>Searching...</div>';
+      try {
+        const res = await fetch(APC_SEARCH_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ countries: selectedCountries })
+        });
+        cachedPlans = await res.json();
+        applyFilters();
+      } catch (e) {
+        document.getElementById("resultsContainer").innerHTML = '<div class="state">⚠️ Search failed. Try again.</div>';
+      }
+    });
+
+    document.getElementById("applyFiltersBtn").addEventListener("click", applyFilters);
+
+    function applyFilters() {
+      if (!cachedPlans.length) return;
+      const minD = parseFloat(document.getElementById("minData").value) || 0;
+      const maxD = parseFloat(document.getElementById("maxData").value) || Infinity;
+      const minDur = parseFloat(document.getElementById("minDuration").value) || 0;
+      const maxDur = parseFloat(document.getElementById("maxDuration").value) || Infinity;
+      const filtered = cachedPlans.filter(p => {
+        const gb = p.gb === "unlimited" ? Infinity : parseFloat(p.gb);
+        const days = parseFloat(p.days);
+        return gb >= minD && gb <= maxD && days >= minDur && days <= maxDur;
+      });
+      renderTable(filtered);
+    }
+
+    function renderTable(plans) {
+      if (!plans.length) return document.getElementById("resultsContainer").innerHTML = '<div class="state">No plans match filters.</div>';
+      let html = '<div class="table-wrapper"><table><thead><tr><th>#</th><th>Name</th><th>Price</th><th>Data</th><th>Duration</th><th>Price/GB</th><th>Countries</th><th>Buy</th></tr></thead><tbody>';
+      plans.forEach((p, i) => {
+        html += `<tr><td>${i+1}</td><td>${p.name}</td><td>$${p.price.toFixed(2)}</td><td>${p.gb} GB</td><td>${p.days} days</td><td>$${(p.price/parseFloat(p.gb||1)).toFixed(2)}</td><td>${p.codes}</td><td><button class="buy-btn" onclick="alert('Checkout coming soon')">Buy</button></td></tr>`;
+      });
+      html += '</tbody></table></div>';
+      document.getElementById("resultsContainer").innerHTML = html;
+    }
+
+    // Initialize on load
+    initDropdown();
+  </script>
 </body>
 </html>
