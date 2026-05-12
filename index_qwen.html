@@ -10,8 +10,6 @@
     body { background: var(--bg); color: var(--text); padding: 20px; }
     .container { max-width: 1200px; margin: 0 auto; }
     h1 { text-align: center; margin-bottom: 24px; }
-    
-    /* Layout */
     .search-row { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
     .filter-row { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; background: var(--card); padding: 16px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     .field { display: flex; flex-direction: column; gap: 6px; }
@@ -21,8 +19,6 @@
     button { background: var(--primary); color: #fff; border: none; cursor: pointer; font-weight: 600; transition: opacity 0.2s; }
     button:hover { opacity: 0.9; }
     button.secondary { background: var(--muted); }
-    
-    /* Country Dropdown */
     .country-selector { position: relative; width: 300px; }
     .selector-display { background: #fff; border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
     .selector-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; max-height: 250px; overflow-y: auto; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; }
@@ -31,16 +27,12 @@
     .country-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; cursor: pointer; }
     .country-item:hover { background: #f1f5f9; }
     .country-item input { width: auto; margin: 0; }
-    
-    /* Table */
     .table-wrapper { overflow-x: auto; background: var(--card); border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
     table { width: 100%; border-collapse: collapse; min-width: 900px; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
     th { background: #f8fafc; font-weight: 600; color: var(--muted); position: sticky; top: 0; }
     tr:hover { background: #f8fafc; }
     .buy-btn { background: #10b981; padding: 6px 12px; font-size: 0.85rem; }
-    
-    /* States */
     .state { text-align: center; padding: 40px; color: var(--muted); }
     .loader { border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -50,7 +42,6 @@
   <div class="container">
     <h1>🌍 Instant eSIM Data</h1>
 
-    <!-- Country Search -->
     <div class="search-row">
       <div class="field country-selector" id="countrySelector">
         <label>Country / Region</label>
@@ -65,7 +56,6 @@
       </div>
     </div>
 
-    <!-- Filters -->
     <div class="filter-row">
       <div class="field">
         <label>Data (GB)</label>
@@ -78,13 +68,9 @@
       <div class="field">
         <label>Duration (Days)</label>
         <div class="range-group">
-          <select id="minDuration">
-            <option value="">Min</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option>
-          </select>
+          <select id="minDuration"><option value="">Min</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option></select>
           <span>to</span>
-          <select id="maxDuration">
-            <option value="">Max</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option>
-          </select>
+          <select id="maxDuration"><option value="">Max</option><option>1</option><option>3</option><option>5</option><option>7</option><option>10</option><option>14</option><option>28</option><option>60</option><option>90</option><option>180</option><option>365</option></select>
         </div>
       </div>
       <div class="field" style="justify-content: flex-end;">
@@ -92,30 +78,40 @@
       </div>
     </div>
 
-    <!-- Results -->
     <div id="resultsContainer"></div>
   </div>
 
   <script>
-    // 🔧 CONFIGURATION
     const APC_SEARCH_URL = "https://cloud.activepieces.com/api/v1/webhooks/0npqEufU6rvxr9IMb9uu7";
     const COUNTRIES_CSV_URL = "https://docs.google.com/spreadsheets/d/1D6zQ91MYfbQL4XSClSWffSTOfmDFJoO4hEdpENB0_RY/gviz/tq?tqx=out:csv&sheet=AppsScript_Countries";
 
     let selectedCountries = [];
     let cachedPlans = [];
 
-    // 1. Fetch & Render Country Dropdown
     async function initDropdown() {
       const list = document.getElementById("countryList");
       const display = document.getElementById("selectorDisplay");
       list.innerHTML = '<div style="padding:12px; color:#64748b;">Loading countries...</div>';
       
       try {
+        console.log(" Fetching countries from Google Sheets...");
         const res = await fetch(COUNTRIES_CSV_URL);
-        if (!res.ok) throw new Error("Failed to fetch");
-        const text = await res.text();
-        const countries = text.split('\n').slice(1).map(r => r.replace(/^"|"$/g, '').trim()).filter(Boolean);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
+        const text = await res.text();
+        console.log("📄 Raw CSV received:", text.substring(0, 100) + "...");
+        
+        // Robust CSV parser
+        const rows = text.split(/\r?\n/).filter(r => r.trim() !== '');
+        const countries = rows.slice(1).map(r => {
+          // Handle quoted values and trim
+          return r.replace(/^"|"$/g, '').replace(/""/g, '"').trim();
+        }).filter(Boolean);
+        
+        console.log(`✅ Parsed ${countries.length} countries.`, countries.slice(0, 5));
+        
+        if (countries.length === 0) throw new Error("CSV returned empty");
+
         list.innerHTML = countries.map(c => `
           <label class="country-item">
             <input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}
@@ -123,8 +119,16 @@
         `).join('');
         display.textContent = "0 selected";
       } catch (e) {
-        list.innerHTML = '<div style="padding:12px; color:#dc2626;">Failed to load countries.</div>';
-        console.error(e);
+        console.error("❌ Country fetch failed:", e.message);
+        // Fallback list if Google Sheets is blocked or empty
+        const fallback = ["Japan","South Korea","USA","UK","France","Germany","Italy","Spain","Australia","Canada","Global","Europe"];
+        console.log("⚠️ Using fallback country list.");
+        list.innerHTML = fallback.map(c => `
+          <label class="country-item">
+            <input type="checkbox" value="${c}" onchange="updateSelection()"> ${c}
+          </label>
+        `).join('');
+        display.textContent = "0 selected";
       }
     }
 
@@ -149,13 +153,13 @@
       if (!e.target.closest(".country-selector")) document.getElementById("selectorDropdown").style.display = "none";
     });
 
-    // 2. Connect "Find Plans" to APC Flow
     document.getElementById("findPlansBtn").addEventListener("click", async () => {
       if (!selectedCountries.length) return alert("Please select at least one country.");
 
       document.getElementById("resultsContainer").innerHTML = '<div class="state"><div class="loader"></div>Searching...</div>';
 
       try {
+        console.log("📤 Sending to APC:", selectedCountries);
         const response = await fetch(APC_SEARCH_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -163,23 +167,21 @@
         });
 
         const data = await response.json();
-        // Handle both direct array response and wrapped response
-        const plans = Array.isArray(data) ? data : (data.body || []);
+        console.log("📥 APC Response:", data);
         
+        const plans = Array.isArray(data) ? data : (data.body || []);
         cachedPlans = plans;
         applyFilters();
       } catch (e) {
-        console.error(e);
-        document.getElementById("resultsContainer").innerHTML = '<div class="state">⚠️ Search failed. Check console.</div>';
+        console.error("❌ Search failed:", e);
+        document.getElementById("resultsContainer").innerHTML = '<div class="state">⚠️ Search failed. Check console (F12).</div>';
       }
     });
 
-    // 3. Client-Side Filtering
     document.getElementById("applyFiltersBtn").addEventListener("click", applyFilters);
 
     function applyFilters() {
       if (!cachedPlans.length) return;
-      
       const minD = parseFloat(document.getElementById("minData").value) || 0;
       const maxD = parseFloat(document.getElementById("maxData").value) || Infinity;
       const minDur = parseFloat(document.getElementById("minDuration").value) || 0;
@@ -193,7 +195,6 @@
       renderTable(filtered);
     }
 
-    // 4. Render Results Table
     function renderTable(plans) {
       if (!plans.length) return document.getElementById("resultsContainer").innerHTML = '<div class="state">No plans match your filters.</div>';
       
@@ -221,7 +222,6 @@
       document.getElementById("resultsContainer").innerHTML = html;
     }
 
-    // Initialize on page load
     initDropdown();
   </script>
 </body>
